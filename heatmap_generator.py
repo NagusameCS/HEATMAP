@@ -1396,7 +1396,28 @@ def generate_heatmap_derivative(csv_path=None):
         message_dialog(title='Error', text=f'Heatmap CSV not found: {csv_path}').run()
         return
 
-    out_path = os.path.join(summaries_dir, 'heatmap_derivative.csv')
+    # Determine source CSV ID from index (if available) for naming derivative output
+    csv_id = None
+    index_path = os.path.join(summaries_dir, 'csv_index.json')
+    try:
+        if os.path.exists(index_path):
+            with open(index_path, 'r', encoding='utf-8') as f:
+                _index = json.load(f)
+            # try to find matching entry by absolute path or basename
+            abs_csv = os.path.abspath(csv_path)
+            base_csv = os.path.basename(csv_path)
+            for cid, meta in _index.items():
+                try:
+                    if os.path.abspath(meta.get('path', '')) == abs_csv or meta.get('filename', '') == base_csv:
+                        csv_id = cid
+                        break
+                except Exception:
+                    continue
+    except Exception:
+        csv_id = None
+
+    out_name = f"heatmap_derivative_{(csv_id or get_session_id())}.csv"
+    out_path = os.path.join(summaries_dir, out_name)
 
     # Read input
     with open(csv_path, 'r', encoding='utf-8') as f:
