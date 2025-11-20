@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEATMAP Releases</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #24292e;
+        }
+
+        h1 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 10px;
+        }
+
+        .release {
+            border: 1px solid #d1d5da;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+
+        .release-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 5px;
+        }
+
+        .tag-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #0366d6;
+            text-decoration: none;
+        }
+
+        .tag-name:hover {
+            text-decoration: underline;
+        }
+
+        .published-at {
+            color: #586069;
+            font-size: 0.9em;
+        }
+
+        .assets {
+            list-style: none;
+            padding: 0;
+        }
+
+        .asset {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .asset a {
+            text-decoration: none;
+            color: #0366d6;
+            font-weight: 600;
+        }
+
+        .asset a:hover {
+            text-decoration: underline;
+        }
+
+        .asset-size {
+            color: #586069;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+
+        .loading {
+            color: #586069;
+            font-style: italic;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #cb2431;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .body {
+            margin-bottom: 15px;
+        }
+
+        /* Markdown styles */
+        .body h1,
+        .body h2,
+        .body h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        .body code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: rgba(27, 31, 35, 0.05);
+            border-radius: 3px;
+        }
+
+        .body pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: #f6f8fa;
+            border-radius: 3px;
+        }
+
+        .body pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>HEATMAP Releases</h1>
+    <div id="releases-container">
+        <p class="loading">Loading releases...</p>
+    </div>
+
+    <script>
+        const repoOwner = 'NagusameCS';
+        const repoName = 'HEATMAP';
+        const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases`;
+
+        async function fetchReleases() {
+            const container = document.getElementById('releases-container');
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`GitHub API returned ${response.status}: ${response.statusText}`);
+                }
+                const releases = await response.json();
+
+                if (releases.length === 0) {
+                    container.innerHTML = '<p>No releases found.</p>';
+                    return;
+                }
+
+                container.innerHTML = ''; // Clear loading message
+
+                releases.forEach(release => {
+                    const releaseDiv = document.createElement('div');
+                    releaseDiv.className = 'release';
+
+                    const date = new Date(release.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+                    let assetsHtml = '';
+                    if (release.assets && release.assets.length > 0) {
+                        assetsHtml = '<h3>Assets</h3><ul class="assets">';
+                        release.assets.forEach(asset => {
+                            const size = (asset.size / 1024 / 1024).toFixed(2);
+                            assetsHtml += `
+                                <li class="asset">
+                                    <a href="${asset.browser_download_url}">📦 ${asset.name}</a> 
+                                    <span class="asset-size">(${size} MB)</span>
+                                </li>`;
+                        });
+                        assetsHtml += '</ul>';
+                    } else {
+                        assetsHtml = '<p>No binary assets available for this release.</p>';
+                    }
+
+                    const sourceHtml = `
+                        <h3>Source Code</h3>
+                        <ul class="assets">
+                            <li class="asset"><a href="${release.zipball_url}">🗜️ Source Code (zip)</a></li>
+                            <li class="asset"><a href="${release.tarball_url}">🗜️ Source Code (tar.gz)</a></li>
+                        </ul>
+                    `;
+
+                    // Use marked if available, otherwise just text
+                    const bodyContent = typeof marked !== 'undefined' ? marked.parse(release.body || '') : (release.body || '');
+
+                    releaseDiv.innerHTML = `
+                        <div class="release-header">
+                            <a href="${release.html_url}" class="tag-name" target="_blank">${release.name || release.tag_name}</a>
+                            <span class="published-at">${date}</span>
+                        </div>
+                        <div class="body">${bodyContent}</div>
+                        ${assetsHtml}
+                        ${sourceHtml}
+                    `;
+                    container.appendChild(releaseDiv);
+                });
+            } catch (error) {
+                container.innerHTML = `<p class="error">Error loading releases: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+
+        // Load marked.js for markdown rendering
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+        script.onload = fetchReleases;
+        script.onerror = fetchReleases; // Try to load anyway even if marked fails
+        document.head.appendChild(script);
+    </script>
+</body>
+
+</html>
