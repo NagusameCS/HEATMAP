@@ -1,9 +1,0 @@
-**Solution:**
-
-To find the sum of 2 and 2:
-
-\[
-2 + 2 = \boxed{4}
-\]
-
-Therefore, \(2 + 2 = \boxed{4}\).
