@@ -55,6 +55,7 @@ import getpass
 import argparse
 import shlex
 import statistics
+import uuid
 from prompt_toolkit.shortcuts import checkboxlist_dialog, radiolist_dialog, message_dialog, button_dialog, input_dialog
 from prompt_toolkit.styles import Style
 from rich.console import Console, Group
@@ -394,6 +395,37 @@ def open_output_dir(path=None):
             webbrowser.open('file://' + os.path.abspath(target))
         except Exception:
             message_dialog(title="Error", text=f"Could not open directory: {target}").run()
+
+
+def _register_csv_entry(summaries_dir, csv_filename, temps):
+    """Register a generated CSV in `csv_index.json` with a short id and metadata."""
+    index_path = os.path.join(summaries_dir, 'csv_index.json')
+    try:
+        if os.path.exists(index_path):
+            with open(index_path, 'r', encoding='utf-8') as f:
+                index = json.load(f)
+        else:
+            index = {}
+    except Exception:
+        index = {}
+
+    csv_id = uuid.uuid4().hex[:8]
+    entry = {
+        'id': csv_id,
+        'filename': os.path.basename(csv_filename),
+        'path': os.path.abspath(csv_filename),
+        'created_at': datetime.datetime.now().isoformat(),
+        'temps': [float(t) for t in temps]
+    }
+    index[csv_id] = entry
+
+    try:
+        with open(index_path, 'w', encoding='utf-8') as f:
+            json.dump(index, f, indent=2)
+    except Exception:
+        pass
+
+    return csv_id, entry
 
 def load_prompts(filepath):
     prompts = []
@@ -1219,7 +1251,9 @@ def aggregate_jsons_and_heatmap():
     models = sorted(heatmap.keys())
 
     # Write CSV: Model, temp columns (0.0..1.0)
-    csv_path = os.path.join(summaries_dir, 'heatmap.csv')
+    # Use a timestamped filename and register it with an index so users can select specific CSVs later
+    csv_basename = f"heatmap_{get_session_id()}.csv"
+    csv_path = os.path.join(summaries_dir, csv_basename)
     try:
         with open(csv_path, 'w', newline='', encoding='utf-8') as csvf:
             writer = csv.writer(csvf)
@@ -1237,10 +1271,18 @@ def aggregate_jsons_and_heatmap():
                     else:
                         row.append('')
                 writer.writerow(row)
+        # Register the CSV in the index for later selection
+        try:
+            csv_id, entry = _register_csv_entry(summaries_dir, csv_path, temps_list)
+        except Exception:
+            csv_id = None
     except Exception:
-        pass
+        csv_id = None
 
-    message_dialog(title="Aggregation Complete", text=f"Processed {len(valid_entries)} valid JSONs, {len(invalid_entries)} invalid.\nSuper JSON: {super_path}\nInvalid list: {invalid_path}\nHeatmap CSV: {csv_path}").run()
+    msg = f"Processed {len(valid_entries)} valid JSONs, {len(invalid_entries)} invalid.\nSuper JSON: {super_path}\nInvalid list: {invalid_path}\nHeatmap CSV: {csv_path}"
+    if csv_id:
+        msg += f"\nCSV ID: {csv_id}"
+    message_dialog(title="Aggregation Complete", text=msg).run()
 
 
 def generate_heatmap_derivative(csv_path=None):
@@ -1254,8 +1296,51 @@ def generate_heatmap_derivative(csv_path=None):
     - Missing cells are preserved as empty in the derivative output.
     """
     summaries_dir = os.path.join(OUTPUT_DIR, "Summaries")
+    # If no csv_path provided, present a selection UI populated from the csv_index.json
+    index_path = os.path.join(summaries_dir, 'csv_index.json')
     if csv_path is None:
-        csv_path = os.path.join(summaries_dir, 'heatmap.csv')
+        choices = []
+        index = {}
+        if os.path.exists(index_path):
+            try:
+                with open(index_path, 'r', encoding='utf-8') as f:
+                    index = json.load(f)
+            except Exception:
+                index = {}
+
+        if index:
+            # Build radiolist choices from index entries
+            for cid, meta in sorted(index.items(), key=lambda x: x[1].get('created_at', ''), reverse=True):
+                created = meta.get('created_at', '')
+                fname = meta.get('filename', '')
+                temps_preview = ','.join([f"{t:.1f}" for t in meta.get('temps', [])])
+                label = f"{cid} — {fname} ({created})\nTemps: {temps_preview}"
+                choices.append((cid, label))
+        else:
+            # Fallback: scan for heatmap_*.csv files
+            for fn in sorted(os.listdir(summaries_dir), reverse=True):
+                if fn.startswith('heatmap_') and fn.lower().endswith('.csv'):
+                    full = os.path.join(summaries_dir, fn)
+                    ts = datetime.datetime.fromtimestamp(os.path.getmtime(full)).isoformat()
+                    label = f"{fn} ({ts})"
+                    choices.append((full, label))
+
+        if not choices:
+            message_dialog(title='Error', text=f'No heatmap CSVs found in: {summaries_dir}').run()
+            return
+
+        # Let user pick which CSV to process
+        sel = radiolist_dialog(title='Select Heatmap CSV', text='Choose a heatmap CSV to derive from:', values=choices).run()
+        if not sel:
+            play_sound('back')
+            return
+
+        # If user selected an index id, map to path
+        if sel in index:
+            csv_path = index[sel].get('path')
+        else:
+            csv_path = sel
+
     if not os.path.exists(csv_path):
         message_dialog(title='Error', text=f'Heatmap CSV not found: {csv_path}').run()
         return
