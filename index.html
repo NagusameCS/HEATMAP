@@ -100,6 +100,13 @@
             transform: translateY(-2px);
         }
 
+        .release.prerelease {
+            border: 6px solid transparent;
+            background:
+                linear-gradient(var(--panel-color), var(--panel-color)) padding-box,
+                repeating-linear-gradient(45deg, #FFD700, #FFD700 15px, #000 15px, #000 30px) border-box;
+        }
+
         .release-header {
             display: flex;
             justify-content: space-between;
@@ -609,6 +616,9 @@
                 releases.forEach(release => {
                     const releaseDiv = document.createElement('div');
                     releaseDiv.className = 'release';
+                    if (release.prerelease) {
+                        releaseDiv.classList.add('prerelease');
+                    }
 
                     const dateObj = new Date(release.published_at);
                     const date = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -686,9 +696,7 @@
 
                     // Tags
                     let tagsHtml = '';
-                    if (release.prerelease) {
-                        tagsHtml += '<span style="background:#e3b341; color:black; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Pre-release</span>';
-                    } else {
+                    if (!release.prerelease) {
                         tagsHtml += '<span style="background:#2cbe4e; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Latest</span>';
                     }
 
