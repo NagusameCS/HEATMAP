@@ -25,6 +25,7 @@ import argparse
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
 ENTRY = os.path.join(ROOT, 'heatmap_generator.py')
+LAUNCHER = os.path.join(ROOT, 'run.py')
 DEFAULT_NAME = 'Heatmap'
 
 
@@ -48,32 +49,43 @@ def ensure_pyinstaller():
         return False
 
 
-def build(distpath, name, clean=False, onefile=True):
-    """Run PyInstaller to build. Set onefile=False for onedir builds (recommended for .app)."""
+def build_entry(entry, distpath, name, clean=False):
     work = os.path.join('build', os.path.basename(distpath))
     spec = os.path.join('build', 'specs')
-    if clean:
-        # remove previous build artifacts
-        for d in (distpath, work, spec):
-            if os.path.exists(d):
-                try:
-                    import shutil
-                    shutil.rmtree(d)
-                except Exception:
-                    pass
+    # Always remove previous build artifacts to ensure a clean build
+    for d in (distpath, work, spec):
+        if os.path.exists(d):
+            try:
+                import shutil
+                shutil.rmtree(d)
+            except Exception:
+                pass
+
+    # If a file exists at the dist path (e.g., an executable written directly
+    # into the parent folder from a previous run), remove it so we can create
+    # a directory with the same name safely.
+    if os.path.exists(distpath) and not os.path.isdir(distpath):
+        try:
+            os.remove(distpath)
+        except Exception:
+            pass
 
     os.makedirs(distpath, exist_ok=True)
     os.makedirs(work, exist_ok=True)
     os.makedirs(spec, exist_ok=True)
 
-    cmd = [sys.executable, '-m', 'PyInstaller', '--noconfirm']
-    # windowed makes a GUI app (no terminal window)
-    cmd += ['--windowed', '--name', name, ENTRY, '--distpath', distpath, '--workpath', work, '--specpath', spec]
-    if onefile:
-        cmd.insert(3, '--onefile')
-    else:
-        # onedir mode (default when not specifying --onefile)
-        pass
+
+    cmd = [
+        sys.executable, '-m', 'PyInstaller',
+        '--noconfirm',
+        '--onefile',
+        '--windowed',
+        '--name', name,
+        entry,
+        '--distpath', distpath,
+        '--workpath', work,
+        '--specpath', spec,
+    ]
 
     return run_cmd(cmd)
 
@@ -123,25 +135,64 @@ def main():
         if platform.system() != 'Darwin':
             print('Skipping mac build: must run on macOS to build a .app bundle.')
         else:
-            dist = os.path.join(ROOT, 'dist', 'mac')
-            # For macOS .app bundles, use onedir mode (onefile + .app is deprecated/unsupported)
-            ok = build(dist, args.name, clean=args.clean, onefile=False)
-            results.append(('mac', ok, dist))
+            # Build main app into its own subfolder
+            dist_main = os.path.join(ROOT, 'dist', 'mac', args.name)
+            ok = build_entry(ENTRY, dist_main, args.name, clean=args.clean)
+            # Create a zip archive for release upload
+            try:
+                import shutil
+                archive_path = shutil.make_archive(os.path.join(ROOT, 'dist', 'mac', args.name), 'zip', root_dir=dist_main)
+            except Exception:
+                archive_path = None
+            results.append(('mac', ok, dist_main, archive_path))
+
+            # Build launcher into its own subfolder
+            launcher_name = f"{args.name}Launcher"
+            dist_launcher = os.path.join(ROOT, 'dist', 'mac', launcher_name)
+            ok2 = build_entry(LAUNCHER, dist_launcher, launcher_name, clean=args.clean)
+            try:
+                import shutil
+                archive_path2 = shutil.make_archive(os.path.join(ROOT, 'dist', 'mac', launcher_name), 'zip', root_dir=dist_launcher)
+            except Exception:
+                archive_path2 = None
+            results.append(('mac-launcher', ok2, dist_launcher, archive_path2))
 
     if do_win:
         if platform.system() != 'Windows':
             print('Skipping Windows build: must run on Windows to build a .exe (no cross-compile).')
         else:
-            dist = os.path.join(ROOT, 'dist', 'windows')
-            # For Windows, onefile exe is usually desired
-            ok = build(dist, args.name, clean=args.clean, onefile=True)
-            results.append(('windows', ok, dist))
+            dist_main = os.path.join(ROOT, 'dist', 'windows', args.name)
+            ok = build_entry(ENTRY, dist_main, args.name, clean=args.clean)
+            try:
+                import shutil
+                archive_path = shutil.make_archive(os.path.join(ROOT, 'dist', 'windows', args.name), 'zip', root_dir=dist_main)
+            except Exception:
+                archive_path = None
+            results.append(('windows', ok, dist_main, archive_path))
+
+            launcher_name = f"{args.name}Launcher"
+            dist_launcher = os.path.join(ROOT, 'dist', 'windows', launcher_name)
+            ok2 = build_entry(LAUNCHER, dist_launcher, launcher_name, clean=args.clean)
+            try:
+                import shutil
+                archive_path2 = shutil.make_archive(os.path.join(ROOT, 'dist', 'windows', launcher_name), 'zip', root_dir=dist_launcher)
+            except Exception:
+                archive_path2 = None
+            results.append(('windows-launcher', ok2, dist_launcher, archive_path2))
 
     # Update .gitignore for dist folders
-    update_gitignore(['dist/mac/', 'dist/windows/', 'build/'])
+    update_gitignore(['dist/', 'build/'])
 
-    for platform_name, ok, dist in results:
-        print(f'Build {platform_name}:', 'OK' if ok else 'FAILED', '->', dist)
+    for item in results:
+        if len(item) == 4:
+            platform_name, ok, dist, archive = item
+        else:
+            platform_name, ok, dist = item
+            archive = None
+        msg = f"Build {platform_name}: {'OK' if ok else 'FAILED'} -> {dist}"
+        if archive:
+            msg += f" (archive: {archive})"
+        print(msg)
 
 
 if __name__ == '__main__':

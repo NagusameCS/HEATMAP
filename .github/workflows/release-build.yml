@@ -1,0 +1,78 @@
+name: Build Release Artifacts
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    if: runner.os == 'macOS'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Build mac artifacts
+        run: |
+          python build.py --mac --name Heatmap --clean
+      - name: List dist
+        run: ls -la dist/mac || true
+      - name: Create GitHub Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifacts to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/mac/Heatmap.zip
+          asset_name: Heatmap-mac.zip
+          asset_content_type: application/zip
+
+  build-windows:
+    if: runner.os == 'Windows'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+      - name: Build windows artifacts
+        run: |
+          python build.py --win --name Heatmap --clean
+      - name: List dist
+        run: dir dist\windows || true
+      - name: Create GitHub Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifacts to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/windows/Heatmap.zip
+          asset_name: Heatmap-windows.zip
+          asset_content_type: application/zip

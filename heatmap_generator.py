@@ -353,6 +353,46 @@ def create_session_directories(models, session_id):
         os.makedirs(path, exist_ok=True)
     return session_id
 
+
+def open_output_dir(path=None):
+    """Open a folder in the system file browser (Finder/Explorer/Files).
+
+    If `path` is None, opens the project's `OUTPUT_DIR`.
+    """
+    target = path or OUTPUT_DIR
+    try:
+        if not os.path.exists(target):
+            message_dialog(title="Info", text=f"Directory '{target}' not found.").run()
+            return
+    except Exception:
+        # If message_dialog isn't available for some reason, fallback to print
+        try:
+            print(f"Directory '{target}' not found.")
+        except Exception:
+            pass
+        return
+
+    try:
+        system = platform.system()
+        if system == 'Darwin':
+            subprocess.run(['open', target], check=False)
+        elif system == 'Windows':
+            try:
+                os.startfile(target)
+            except Exception:
+                subprocess.run(['explorer', target], check=False)
+        else:
+            # Linux/Other: prefer xdg-open, fallback to webbrowser
+            try:
+                subprocess.run(['xdg-open', target], check=False)
+            except Exception:
+                webbrowser.open('file://' + os.path.abspath(target))
+    except Exception:
+        try:
+            webbrowser.open('file://' + os.path.abspath(target))
+        except Exception:
+            message_dialog(title="Error", text=f"Could not open directory: {target}").run()
+
 def load_prompts(filepath):
     prompts = []
     try:
@@ -1060,6 +1100,7 @@ def main():
             ("evaluate", "Evaluate Sessions"),
             ("stats", "View Statistics & Health"),
             ("purge", "Purge Old Records"),
+            ("open_output", "Open Output Folder"),
             ("inspect", "Browse & Inspect Models"),
             ("download", "Download New Models"),
             ("get_more", "Find more models on Ollama.com"),
@@ -1120,6 +1161,15 @@ def main():
         
         if action == "purge":
             purge_records_ui()
+
+        if action == "open_output":
+            # Open the main output directory in the system file browser
+            if not os.path.exists(OUTPUT_DIR):
+                message_dialog(title="Info", text="No output directory found.").run()
+            else:
+                play_sound("notify")
+                open_output_dir(OUTPUT_DIR)
+            continue
 
         if action == "evaluate":
             evaluate_sessions_ui(all_models_data)
@@ -1584,11 +1634,20 @@ def generate_heatmaps(heatmap_data, selected_models_names, session_id):
                 
         console.print(f"[green]Heatmap CSV generated: {csv_path}[/green]")
         
-        # Open folder
-        if os.name == 'nt':
-            os.startfile(summary_dir)
-        elif os.name == 'posix':
-            subprocess.call(['open', summary_dir])
+        # Open the summary folder with a cross-platform helper
+        try:
+            open_output_dir(summary_dir)
+        except Exception:
+            # Best-effort fallback
+            try:
+                if os.name == 'nt':
+                    os.startfile(summary_dir)
+                elif platform.system() == 'Darwin':
+                    subprocess.call(['open', summary_dir])
+                else:
+                    subprocess.call(['xdg-open', summary_dir])
+            except Exception:
+                pass
 
     except Exception as e:
         console.print(f"[red]Error generating heatmap CSV: {e}[/red]")

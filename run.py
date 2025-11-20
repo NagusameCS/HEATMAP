@@ -14,6 +14,8 @@ import tempfile
 import getpass
 import psutil
 from shutil import which as _shutil_which
+from prompt_toolkit.shortcuts import radiolist_dialog, message_dialog
+from prompt_toolkit.styles import Style
 
 
 def build_command(python_exe, script_path, extra_args=None):
@@ -89,91 +91,134 @@ def main():
     script = os.path.join(os.path.dirname(__file__), 'heatmap_generator.py')
     extra = args.extra or []
 
-    cmd = build_command(python_exe, script, extra)
-    # Single-instance check: read pidfile used by heatmap_generator
-    pid_file = os.path.join(tempfile.gettempdir(), f'heatmap_generator_{getpass.getuser()}.pid')
-    if os.path.exists(pid_file):
+    style = Style.from_dict({'dialog': 'bg:#88ff88'})
+
+    def check_running_instance():
+        pid_file = os.path.join(tempfile.gettempdir(), f'heatmap_generator_{getpass.getuser()}.pid')
+        if os.path.exists(pid_file):
+            try:
+                with open(pid_file, 'r', encoding='utf-8') as f:
+                    existing = f.read().strip()
+                if existing and psutil.pid_exists(int(existing)):
+                    return int(existing)
+            except Exception:
+                return None
+        return None
+
+    def kill_instance(pid):
         try:
-            with open(pid_file, 'r', encoding='utf-8') as f:
-                existing = f.read().strip()
-            if existing:
-                pid = int(existing)
-                if psutil.pid_exists(pid):
-                    # Prompt user for action
-                    print(f'Found running HEATMAP instance (PID {pid}). Choose action:')
-                    print('[K]ill the other instance and start new')
-                    print('[O]pen/bring the existing terminal to front')
-                    print('[C]ancel launch')
-                    choice = input('Choice [K/O/C]: ').strip().lower()
-                    if choice == 'k':
-                        print('Attempting to terminate existing process...')
-                        try:
-                            import signal as _signal
-                            os.kill(pid, _signal.SIGTERM)
-                        except Exception:
-                            pass
-                        # wait briefly
-                        import time as _time
-                        _time.sleep(1)
-                        if psutil.pid_exists(pid):
-                            try:
-                                os.kill(pid, _signal.SIGKILL)
-                            except Exception:
-                                pass
-                        # remove pidfile if still present
-                        try:
-                            if os.path.exists(pid_file):
-                                os.remove(pid_file)
-                        except Exception:
-                            pass
-                        print('Terminated previous instance (if running). Proceeding to open a new window.')
-                    elif choice == 'o':
-                        system = platform.system()
-                        if system == 'Darwin':
-                            # Activate Terminal.app (best-effort)
-                            try:
-                                subprocess.run(['osascript', '-e', 'tell application "Terminal" to activate'])
-                                print('Brought Terminal to front. Please locate the tab running the existing HEATMAP instance.')
-                            except Exception:
-                                print('Could not bring Terminal to front. Please switch to the terminal running the instance (PID', pid, ').')
-                        elif system == 'Linux':
-                            # Try wmctrl to focus window by PID
-                            winid = None
-                            if _shutil_which('wmctrl'):
-                                try:
-                                    out = subprocess.check_output(['wmctrl', '-lp']).decode('utf-8', errors='ignore')
-                                    for line in out.splitlines():
-                                        parts = line.split()
-                                        if len(parts) >= 3:
-                                            wid = parts[0]
-                                            wpid = parts[2]
-                                            try:
-                                                if int(wpid) == pid:
-                                                    winid = wid
-                                                    break
-                                            except Exception:
-                                                continue
-                                    if winid:
-                                        subprocess.run(['wmctrl', '-ia', winid])
-                                        print('Focused existing terminal window.')
-                                        return
-                                except Exception:
-                                    pass
-                            print('Could not automatically focus the terminal. Please switch to PID', pid)
-                        elif system == 'Windows':
-                            print('Please switch to the existing HEATMAP window (PID', pid, ').')
-                        else:
-                            print('Please switch to the existing HEATMAP window (PID', pid, ').')
-                        return
-                    else:
-                        print('Cancelled launch.')
-                        return
+            import signal as _signal
+            os.kill(pid, _signal.SIGTERM)
+        except Exception:
+            pass
+        import time as _time
+        _time.sleep(1)
+        if psutil.pid_exists(pid):
+            try:
+                os.kill(pid, _signal.SIGKILL)
+            except Exception:
+                pass
+        try:
+            pid_file = os.path.join(tempfile.gettempdir(), f'heatmap_generator_{getpass.getuser()}.pid')
+            if os.path.exists(pid_file):
+                os.remove(pid_file)
         except Exception:
             pass
 
-    ok = open_in_new_terminal(cmd, dry_run=args.dry_run)
-    if not ok:
-        print('Could not open a dedicated terminal window.')
+    def bring_existing_to_front(pid):
+        system = platform.system()
+        if system == 'Darwin':
+            try:
+                subprocess.run(['osascript', '-e', 'tell application "Terminal" to activate'])
+                return True
+            except Exception:
+                return False
+        elif system == 'Linux':
+            if _shutil_which('wmctrl'):
+                try:
+                    out = subprocess.check_output(['wmctrl', '-lp']).decode('utf-8', errors='ignore')
+                    for line in out.splitlines():
+                        parts = line.split()
+                        if len(parts) >= 3:
+                            wid = parts[0]
+                            wpid = parts[2]
+                            try:
+                                if int(wpid) == pid:
+                                    subprocess.run(['wmctrl', '-ia', wid])
+                                    return True
+                            except Exception:
+                                continue
+                except Exception:
+                    return False
+            return False
+        else:
+            return False
+
+    def launch_dedicated():
+        cmd = build_command(python_exe, script, extra)
+        ok = open_in_new_terminal(cmd, dry_run=args.dry_run)
+        if not ok:
+            message_dialog(title='Error', text='Could not open a dedicated terminal window.').run()
+
+    def launch_current():
+        cmd_list = [python_exe, script] + list(extra)
+        try:
+            subprocess.run(cmd_list)
+        except Exception as e:
+            message_dialog(title='Error', text=f'Failed to run: {e}').run()
+
+    while True:
+        running_pid = check_running_instance()
+        status = f'Running PID: {running_pid}' if running_pid else 'No running instance detected.'
+        choices = [
+            ('dedicated', 'Open in Dedicated Terminal'),
+            ('current', 'Run in Current Terminal'),
+            ('status', f'Status ({status})'),
+            ('kill', 'Force Kill Existing Instance'),
+            ('quit', 'Quit')
+        ]
+
+        action = radiolist_dialog(title='HEATMAP Launcher', text='Choose an action:', values=choices, style=style).run()
+
+        if not action or action == 'quit':
+            break
+
+        if action == 'dedicated':
+            if running_pid:
+                confirm = radiolist_dialog(title='Instance Exists', text=f'Instance {running_pid} detected. What to do?', values=[('abort','Abort launch'),('kill','Kill and launch'),('bring','Bring existing to front')]).run()
+                if confirm == 'abort' or confirm is None:
+                    continue
+                if confirm == 'kill':
+                    kill_instance(running_pid)
+                    launch_dedicated()
+                elif confirm == 'bring':
+                    ok = bring_existing_to_front(running_pid)
+                    if not ok:
+                        message_dialog(title='Info', text='Could not focus existing window.').run()
+            else:
+                launch_dedicated()
+
+        elif action == 'current':
+            if running_pid:
+                proceed = radiolist_dialog(title='Proceed?', text=f'Instance {running_pid} detected. Proceed to run here?', values=[('yes','Yes'),('no','No')]).run()
+                if proceed != 'yes':
+                    continue
+            launch_current()
+
+        elif action == 'status':
+            if running_pid:
+                message_dialog(title='Status', text=f'HEATMAP running (PID {running_pid})').run()
+            else:
+                message_dialog(title='Status', text='No running HEATMAP instance found.').run()
+
+        elif action == 'kill':
+            if running_pid:
+                confirm = radiolist_dialog(title='Confirm Kill', text=f'Kill HEATMAP PID {running_pid}?', values=[('y','Yes'),('n','No')]).run()
+                if confirm == 'y':
+                    kill_instance(running_pid)
+                    message_dialog(title='Killed', text='Process terminated (if running).').run()
+            else:
+                message_dialog(title='Info', text='No running instance to kill.').run()
 
 
 if __name__ == '__main__':
