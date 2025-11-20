@@ -77,6 +77,7 @@ EVALUATOR_PROMPT_FILE = "evaluator_prompt.txt"
 OUTPUT_DIR = "output"
 STATS_FILE = "stats.txt"
 MEMORY_FILE = "memory.json"
+SETTINGS_FILE = "settings.json"
 # Generate temperatures from 0.0 to 1.0 with 0.1 step
 TEMPERATURES = [round(x * 0.1, 1) for x in range(11)]
 
@@ -426,6 +427,56 @@ def _register_csv_entry(summaries_dir, csv_filename, temps):
         pass
 
     return csv_id, entry
+
+
+def load_settings():
+    """Load settings from `settings.json` in project root. Returns dict."""
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    # defaults
+    return {
+        'temp_min': 0.0,
+        'temp_max': 1.0,
+        'temp_step': 0.1,
+        'question_range': {'start': 1, 'end': None}
+    }
+
+
+def save_settings(settings):
+    try:
+        with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=2)
+    except Exception:
+        pass
+
+
+def apply_temperature_settings(settings):
+    """Regenerate global TEMPERATURES from settings dict."""
+    global TEMPERATURES
+    try:
+        tmin = float(settings.get('temp_min', 0.0))
+        tmax = float(settings.get('temp_max', 1.0))
+        step = float(settings.get('temp_step', 0.1))
+        if step <= 0:
+            return
+        temps = []
+        cur = tmin
+        # guard against infinite loops
+        max_iters = 1000
+        it = 0
+        while cur <= tmax + 1e-9 and it < max_iters:
+            temps.append(round(cur, 4))
+            cur = cur + step
+            it += 1
+        if temps:
+            # normalize small floats to 1 decimal if step is multiple of 0.1
+            TEMPERATURES = [round(t, 1) if abs(round(step, 1) - step) < 1e-9 else round(t, 4) for t in temps]
+    except Exception:
+        pass
 
 def load_prompts(filepath):
     prompts = []
@@ -1595,6 +1646,7 @@ def main():
                 ("open_output", "Open Output Folder"),
                 ("inspect", "Browse & Inspect Models"),
                 ("download", "Download New Models"),
+                ("settings", "Settings"),
                 ("back", "<< Back")
             ]
             sub = radiolist_dialog(title="Maintenance", text="Choose maintenance action:", values=maint_items).run()
@@ -1619,6 +1671,67 @@ def main():
                 with console.status("[bold green]Refreshing models...[/bold green]", spinner="dots"):
                     all_models_data = get_available_models_full()
                 continue
+            if sub == "settings":
+                # Settings menu: change temp step/range and question range
+                settings = load_settings()
+                while True:
+                    s_items = [
+                        ("temps", f"Temperatures: {settings.get('temp_min')}..{settings.get('temp_max')} step {settings.get('temp_step')}"),
+                        ("questions", f"Question Range: {settings.get('question_range', {}).get('start',1)}..{settings.get('question_range', {}).get('end','ALL')}"),
+                        ("back", "<< Back")
+                    ]
+                    sel = radiolist_dialog(title="Settings", text="Modify settings:", values=s_items).run()
+                    if sel is None or sel == "back":
+                        play_sound('back')
+                        break
+                    if sel == 'temps':
+                        # Ask for min, max, step
+                        minv = input_dialog(title="Temp Min", text=f"Enter min temperature (current: {settings.get('temp_min')}):").run()
+                        if minv is None:
+                            continue
+                        maxv = input_dialog(title="Temp Max", text=f"Enter max temperature (current: {settings.get('temp_max')}):").run()
+                        if maxv is None:
+                            continue
+                        stepv = input_dialog(title="Temp Step", text=f"Enter temp step (current: {settings.get('temp_step')}):").run()
+                        if stepv is None:
+                            continue
+                        try:
+                            minf = float(minv)
+                            maxf = float(maxv)
+                            stepf = float(stepv)
+                            if stepf <= 0 or maxf < minf:
+                                message_dialog(title='Error', text='Invalid temperature range or step.').run()
+                                continue
+                            settings['temp_min'] = minf
+                            settings['temp_max'] = maxf
+                            settings['temp_step'] = stepf
+                            save_settings(settings)
+                            apply_temperature_settings(settings)
+                            message_dialog(title='Saved', text=f"Temperatures updated ({minf}..{maxf} step {stepf}).").run()
+                        except Exception:
+                            message_dialog(title='Error', text='Invalid numeric value.').run()
+                        continue
+                    if sel == 'questions':
+                        startv = input_dialog(title='Question Start', text=f"Enter start index (1-based, current: {settings.get('question_range', {}).get('start',1)}):").run()
+                        if startv is None:
+                            continue
+                        endv = input_dialog(title='Question End', text=f"Enter end index or leave blank for ALL (current: {settings.get('question_range', {}).get('end','ALL')}):").run()
+                        if endv is None:
+                            continue
+                        try:
+                            s_int = int(startv)
+                            e_int = None
+                            if str(endv).strip() != '':
+                                e_int = int(endv)
+                                if e_int < s_int:
+                                    message_dialog(title='Error', text='End must be >= start.').run()
+                                    continue
+                            settings['question_range'] = {'start': s_int, 'end': e_int}
+                            save_settings(settings)
+                            message_dialog(title='Saved', text=f"Question range set to {s_int}..{e_int or 'ALL'}").run()
+                        except Exception:
+                            message_dialog(title='Error', text='Invalid integer value.').run()
+                        continue
 
         if action == "more":
             more_items = [
