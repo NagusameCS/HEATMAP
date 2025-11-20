@@ -112,6 +112,44 @@
             margin-right: auto;
         }
 
+        /* Wiki Progress Bar */
+        #wiki-progress-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #000;
+            border-radius: 20px;
+            display: none;
+            /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            box-shadow: 4px 4px 0px var(--shadow-color);
+            z-index: 2000;
+            overflow: hidden;
+        }
+
+        #wiki-progress-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.1s linear;
+            opacity: 0.3;
+        }
+
+        #wiki-progress-text {
+            position: relative;
+            z-index: 2;
+            font-weight: bold;
+            color: #333;
+        }
+
         /* Wiki Container */
         #wiki-container {
             display: none;
@@ -702,6 +740,11 @@
 
     </div>
 
+    <div id="wiki-progress-container">
+        <div id="wiki-progress-bar"></div>
+        <span id="wiki-progress-text">Scroll to Next Page</span>
+    </div>
+
     <footer>
         <p>&copy; 2025 HEATMAP. All rights reserved.</p>
     </footer>
@@ -976,13 +1019,9 @@
             applyFiltersAndRender();
         });
 
-        // Navigation Logic
-        const navReleases = document.getElementById('nav-releases');
-        const navWiki = document.getElementById('nav-wiki');
-        const wikiNavContainer = document.getElementById('wiki-nav-container');
-        const releasesSection = document.getElementById('releases-section');
-        const wikiContainer = document.getElementById('wiki-container');
-        const wikiContent = document.getElementById('wiki-content');
+        let wikiPagesList = [];
+        let currentWikiPageIndex = 0;
+        let isWikiActive = false;
 
         navReleases.addEventListener('click', () => {
             navReleases.classList.add('active');
@@ -990,6 +1029,8 @@
             releasesSection.style.display = 'block';
             wikiContainer.style.display = 'none';
             wikiNavContainer.style.display = 'none';
+            isWikiActive = false;
+            document.getElementById('wiki-progress-container').style.display = 'none';
         });
 
         navWiki.addEventListener('click', () => {
@@ -998,6 +1039,7 @@
             releasesSection.style.display = 'none';
             wikiContainer.style.display = 'block';
             wikiNavContainer.style.display = 'flex';
+            isWikiActive = true;
 
             if (wikiContent.innerHTML.includes('Loading Wiki...')) {
                 loadWikiSystem();
@@ -1005,14 +1047,25 @@
         });
 
         async function loadWikiSystem() {
-            await fetchWikiPage('Home');
             await fetchWikiSidebar();
+            // If pages found, load the first one (Home)
+            if (wikiPagesList.length > 0) {
+                fetchWikiPage(wikiPagesList[0].page);
+                // Highlight first icon
+                const firstIcon = wikiNavContainer.querySelector('.sidebar-icon');
+                if (firstIcon) firstIcon.classList.add('active');
+            } else {
+                // Fallback
+                fetchWikiPage('Home');
+            }
         }
 
         async function fetchWikiSidebar() {
             try {
                 const sidebarUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/_Sidebar.md`;
                 const response = await fetch(sidebarUrl);
+                wikiPagesList = []; // Reset list
+
                 if (response.ok) {
                     const text = await response.text();
                     // Parse links: [Label](Link)
@@ -1023,17 +1076,20 @@
                     while ((match = linkRegex.exec(text)) !== null) {
                         const label = match[1];
                         const page = match[2];
+                        wikiPagesList.push({ label, page });
                         createWikiSidebarIcon(label, page);
                     }
                 } else {
                     // Fallback if no sidebar
                     wikiNavContainer.innerHTML = '';
+                    wikiPagesList.push({ label: 'Home', page: 'Home' });
                     createWikiSidebarIcon('Home', 'Home');
                 }
             } catch (e) {
                 console.log('No sidebar found or error fetching it');
                 // Fallback
                 wikiNavContainer.innerHTML = '';
+                wikiPagesList.push({ label: 'Home', page: 'Home' });
                 createWikiSidebarIcon('Home', 'Home');
             }
         }
@@ -1042,6 +1098,7 @@
             const div = document.createElement('div');
             div.className = 'sidebar-icon';
             div.title = label;
+            div.dataset.page = page; // Store page for easy access
 
             // Pick an icon based on label
             let iconName = 'article';
@@ -1067,6 +1124,16 @@
 
         async function fetchWikiPage(pageName) {
             wikiContent.innerHTML = '<p class="loading">Loading...</p>';
+
+            // Update current index
+            currentWikiPageIndex = wikiPagesList.findIndex(p => p.page === pageName);
+            if (currentWikiPageIndex === -1) currentWikiPageIndex = 0;
+
+            // Update sidebar active state if navigated via link/scroll
+            document.querySelectorAll('#wiki-nav-container .sidebar-icon').forEach(el => {
+                el.classList.toggle('active', el.dataset.page === pageName);
+            });
+
             try {
                 const wikiUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/${pageName}.md`;
                 const response = await fetch(wikiUrl);
@@ -1094,13 +1161,69 @@
 
             } catch (error) {
                 wikiContent.innerHTML = `
-                        <div class="error">
-                            <h3>Could not load page: ${pageName}</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
+                    <div class="error">
+                        <h3>Could not load page: ${pageName}</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
             }
-        }        // Load marked.js for markdown rendering
+        }
+
+        // Scroll Progress Logic
+        let scrollProgress = 0;
+        const progressBar = document.getElementById('wiki-progress-bar');
+        const progressContainer = document.getElementById('wiki-progress-container');
+        const progressText = document.getElementById('wiki-progress-text');
+
+        window.addEventListener('scroll', () => {
+            if (!isWikiActive) return;
+
+            // Check if at bottom
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const bodyHeight = document.body.offsetHeight;
+            const threshold = 10; // px from bottom
+
+            if (scrollPosition >= bodyHeight - threshold) {
+                // Show progress bar if there is a next page
+                if (currentWikiPageIndex < wikiPagesList.length - 1) {
+                    progressContainer.style.display = 'flex';
+                    const nextPageName = wikiPagesList[currentWikiPageIndex + 1].label;
+                    progressText.textContent = `Scroll for ${nextPageName}`;
+                }
+            } else {
+                progressContainer.style.display = 'none';
+                scrollProgress = 0;
+                progressBar.style.width = '0%';
+            }
+        });
+
+        window.addEventListener('wheel', (e) => {
+            if (!isWikiActive || progressContainer.style.display === 'none') return;
+
+            // If at bottom and scrolling down
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const bodyHeight = document.body.offsetHeight;
+
+            if (scrollPosition >= bodyHeight - 10 && e.deltaY > 0) {
+                scrollProgress += 2; // Increment speed
+                if (scrollProgress > 100) scrollProgress = 100;
+
+                progressBar.style.width = `${scrollProgress}%`;
+
+                if (scrollProgress >= 100) {
+                    // Trigger navigation
+                    scrollProgress = 0;
+                    progressBar.style.width = '0%';
+                    progressContainer.style.display = 'none';
+
+                    if (currentWikiPageIndex < wikiPagesList.length - 1) {
+                        const nextPage = wikiPagesList[currentWikiPageIndex + 1];
+                        fetchWikiPage(nextPage.page);
+                        window.scrollTo(0, 0);
+                    }
+                }
+            }
+        });        // Load marked.js for markdown rendering
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
         script.onload = fetchReleases;
