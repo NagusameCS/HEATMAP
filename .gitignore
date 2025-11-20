@@ -1,4 +1,21 @@
+# Build artifacts
+dist/
+build/
+
+# Platform-specific packaged apps
+dist/mac/
+dist/windows/
+
+# Python cache
+__pycache__/
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
 output/
 __pycache__/
 *.pyc
 memory.json
+stats.txt
+monitor.log

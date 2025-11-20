@@ -1,8 +1,8 @@
 HEATMAP GENERATOR STATISTICS
-Generated: 2025-11-20 07:49:48
+Generated: 2025-11-20 09:02:00
 ========================================
-Storage Used: 2.70 MB
-Total Files: 4401
+Storage Used: 0.00 B
+Total Files: 0
 Purge Recommended: NO
 ----------------------------------------
 Evaluation Performance
@@ -10,7 +10,4 @@ No evaluations found.
 ----------------------------------------
 Average Session Runtime (Est.)
 (Based on file timestamps)
-• deepseek-r1_1.5b    : 9493.7s / session
-• gemma3_4b           : 6806.3s / session
-• phi3_latest         : 4315.2s / session
-• phi3_mini           : 2551.9s / session
+No sufficient data for runtime estimation.

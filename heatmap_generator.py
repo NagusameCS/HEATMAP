@@ -4,18 +4,56 @@ import os
 import json
 import sys
 import psutil
-import msvcrt
+try:
+    import msvcrt
+except Exception:
+    # Provide a minimal msvcrt-like fallback for Unix (macOS/Linux)
+    import sys
+    import select
+    import tty
+    import termios
+
+    class _MsvcrtFallback:
+        def kbhit(self):
+            try:
+                dr, _, _ = select.select([sys.stdin], [], [], 0)
+                return bool(dr)
+            except Exception:
+                return False
+
+        def getch(self):
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(fd)
+                ch = sys.stdin.read(1)
+                return ch.encode()
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    msvcrt = _MsvcrtFallback()
 import subprocess
 import concurrent.futures
 import math
 import time
-import winsound
+import platform
+import tempfile
+import wave
+import struct
+try:
+    import winsound
+except Exception:
+    winsound = None
 import datetime
 import shutil
 import webbrowser
 import re
 import atexit
 import signal
+import tempfile
+import getpass
+import argparse
+import shlex
 from prompt_toolkit.shortcuts import checkboxlist_dialog, radiolist_dialog, message_dialog, button_dialog, input_dialog
 from prompt_toolkit.styles import Style
 from rich.console import Console, Group
@@ -111,6 +149,54 @@ def get_system_memory_gb():
     """Returns total system RAM in GB."""
     return round(psutil.virtual_memory().total / (1024**3), 2)
 
+
+# Single-instance lock (PID file) -------------------------------------------------
+# Use a per-user pid file in the temp directory so multiple users can run independently.
+PID_FILE = os.path.join(tempfile.gettempdir(), f'heatmap_generator_{getpass.getuser()}.pid')
+
+def _is_pid_running(pid):
+    try:
+        return psutil.pid_exists(int(pid))
+    except Exception:
+        return False
+
+def acquire_instance_lock():
+    """Ensure only one instance runs per user. Exits the process if another instance is active."""
+    # If pid file exists, check if process alive
+    if os.path.exists(PID_FILE):
+        try:
+            with open(PID_FILE, 'r', encoding='utf-8') as f:
+                existing = f.read().strip()
+            if existing:
+                try:
+                    existing_pid = int(existing)
+                    if _is_pid_running(existing_pid) and existing_pid != os.getpid():
+                        console.print(f"[red]Another HEATMAP instance is running (PID {existing_pid}). Exiting.[/red]")
+                        sys.exit(1)
+                except ValueError:
+                    pass
+        except Exception:
+            pass
+
+    # Write our PID
+    try:
+        with open(PID_FILE, 'w', encoding='utf-8') as f:
+            f.write(str(os.getpid()))
+    except Exception:
+        pass
+
+    # Ensure removal on exit
+    def _remove_pidfile():
+        try:
+            if os.path.exists(PID_FILE):
+                os.remove(PID_FILE)
+        except Exception:
+            pass
+
+    atexit.register(_remove_pidfile)
+
+# End single-instance lock -------------------------------------------------------
+
 def get_available_models_full():
     """Fetches full model details from Ollama."""
     try:
@@ -142,73 +228,116 @@ def check_resource_compatibility(model_size_bytes, system_ram_gb):
         return False, f"Model size ({model_size_gb:.2f} GB) is very close to or exceeds total RAM ({system_ram_gb} GB)."
     return True, "Likely fits in RAM."
 
+def _play_tone_winsound(freq, ms):
+    try:
+        if winsound:
+            winsound.Beep(int(freq), int(ms))
+    except Exception:
+        pass
+
+def _play_tone_afplay(freq, ms, volume=0.5):
+    """Generate a short WAV tone and play it with `afplay` (macOS)."""
+    try:
+        framerate = 44100
+        n_samples = int(framerate * (ms / 1000.0))
+        amplitude = int(32767 * max(0.0, min(volume, 1.0)))
+
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.wav')
+        tmpname = tmp.name
+        tmp.close()
+
+        with wave.open(tmpname, 'w') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(framerate)
+            for i in range(n_samples):
+                t = float(i) / framerate
+                sample = amplitude * math.sin(2 * math.pi * freq * t)
+                wf.writeframes(struct.pack('<h', int(sample)))
+
+        # Play with afplay (macOS)
+        try:
+            subprocess.run(['afplay', tmpname], check=False)
+        except Exception:
+            pass
+        try:
+            os.remove(tmpname)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+def play_tone(freq, ms, volume=0.5):
+    """Cross-platform single-tone player: Windows uses winsound, macOS uses afplay."""
+    try:
+        if platform.system() == 'Windows' and winsound:
+            _play_tone_winsound(freq, ms)
+        elif platform.system() == 'Darwin':
+            _play_tone_afplay(freq, ms, volume=volume)
+        else:
+            # Fallback: try winsound if available, otherwise no-op
+            if winsound:
+                _play_tone_winsound(freq, ms)
+    except Exception:
+        pass
+
 def play_sound(sound_type="notify"):
-    """Plays a Windows system sound using winsound with musical theory."""
+    """Plays a short musical phrase using platform-appropriate tone playback."""
     try:
         # Frequencies for C Major Scale (C4 - C6)
         C4, D4, E4, F4, G4, A4, B4 = 261, 293, 329, 349, 392, 440, 493
         C5, D5, E5, F5, G5, A5, B5 = 523, 587, 659, 698, 784, 880, 987
         C6 = 1046
-        
-        if sound_type == "notify":
-            # Simple Major 3rd (C -> E)
-            winsound.Beep(C5, 100)
-            winsound.Beep(E5, 100)
-            
-        elif sound_type == "error":
-            # Discordant Tritone (C -> F#)
-            winsound.Beep(C4, 200)
-            winsound.Beep(370, 400) # F#4 approx
-            
-        elif sound_type == "fail":
-            # Descending Chromatic
-            winsound.Beep(G4, 150)
-            winsound.Beep(F4, 150)
-            winsound.Beep(E4, 150)
-            winsound.Beep(D4, 300)
-            
-        elif sound_type == "delete":
-            # Quick descending slide
-            winsound.Beep(G4, 50)
-            winsound.Beep(C4, 100)
-            
-        elif sound_type == "back":
-            # High staccato
-            winsound.Beep(C5, 50)
-            
-        elif sound_type == "shutdown":
-            # Power down (Major Triad descending)
-            winsound.Beep(G4, 150)
-            winsound.Beep(E4, 150)
-            winsound.Beep(C4, 400)
-             
-        elif sound_type == "start":
-            # Power up (Major Triad ascending)
-            winsound.Beep(C4, 100)
-            winsound.Beep(E4, 100)
-            winsound.Beep(G4, 100)
-            winsound.Beep(C5, 200)
-            
-        elif sound_type == "success":
-            # Victory Fanfare (C Major Arpeggio + High C)
-            winsound.Beep(C5, 80)
-            winsound.Beep(E5, 80)
-            winsound.Beep(G5, 80)
-            winsound.Beep(C6, 200)
-            
-        elif sound_type == "jingle":
-            # Pleasant Melody (C-G-A-E)
-            winsound.Beep(C5, 150)
-            winsound.Beep(G4, 150)
-            winsound.Beep(A4, 150)
-            winsound.Beep(E5, 300)
-            
-        elif sound_type == "complete":
-             # Simple resolution (G -> C)
-            winsound.Beep(G4, 100)
-            winsound.Beep(C5, 300)
 
-    except:
+        if sound_type == "notify":
+            play_tone(C5, 100)
+            play_tone(E5, 100)
+
+        elif sound_type == "error":
+            play_tone(C4, 200)
+            play_tone(370, 400)
+
+        elif sound_type == "fail":
+            play_tone(G4, 150)
+            play_tone(F4, 150)
+            play_tone(E4, 150)
+            play_tone(D4, 300)
+
+        elif sound_type == "delete":
+            play_tone(G4, 50)
+            play_tone(C4, 100)
+
+        elif sound_type == "back":
+            play_tone(C5, 50)
+
+        elif sound_type == "shutdown":
+            play_tone(G4, 150)
+            play_tone(E4, 150)
+            play_tone(C4, 400)
+
+        elif sound_type == "start":
+            play_tone(C4, 100)
+            play_tone(E4, 100)
+            play_tone(G4, 100)
+            play_tone(C5, 200)
+
+        elif sound_type == "success":
+            play_tone(C5, 80)
+            play_tone(E5, 80)
+            play_tone(G5, 80)
+            play_tone(C6, 200)
+
+        elif sound_type == "jingle":
+            play_tone(C5, 150)
+            play_tone(G4, 150)
+            play_tone(A4, 150)
+            play_tone(E5, 300)
+
+        elif sound_type == "complete":
+            play_tone(G4, 100)
+            play_tone(C5, 300)
+
+    except Exception:
         pass
 
 def get_session_id():
@@ -903,6 +1032,9 @@ def shutdown_animation():
 
 def main():
     # 1. Get Models
+    # Ensure only one instance runs at a time
+    acquire_instance_lock()
+
     with console.status("[bold green]Fetching available models...[/bold green]", spinner="dots"):
         all_models_data = get_available_models_full()
     
