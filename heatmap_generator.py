@@ -35,6 +35,8 @@ OLLAMA_API_BASE = "http://localhost:11434"
 INPUT_CSV = "prompts.csv"
 EVALUATOR_PROMPT_FILE = "evaluator_prompt.txt"
 OUTPUT_DIR = "output"
+STATS_FILE = "stats.txt"
+MEMORY_FILE = "memory.json"
 # Generate temperatures from 0.0 to 1.0 with 0.1 step
 TEMPERATURES = [round(x * 0.1, 1) for x in range(11)]
 
@@ -42,6 +44,32 @@ console = Console()
 
 # Global to track subprocess for cleanup
 current_subprocess = None
+
+def save_memory(state):
+    """Saves the current state to memory.json."""
+    try:
+        with open(MEMORY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(state, f, indent=4)
+    except Exception:
+        pass
+
+def load_memory():
+    """Loads state from memory.json if it exists."""
+    if os.path.exists(MEMORY_FILE):
+        try:
+            with open(MEMORY_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return None
+    return None
+
+def clear_memory():
+    """Deletes memory.json."""
+    if os.path.exists(MEMORY_FILE):
+        try:
+            os.remove(MEMORY_FILE)
+        except Exception:
+            pass
 
 def cleanup_resources():
     """Cleans up resources (subprocesses, loaded models) on exit."""
@@ -115,35 +143,71 @@ def check_resource_compatibility(model_size_bytes, system_ram_gb):
     return True, "Likely fits in RAM."
 
 def play_sound(sound_type="notify"):
-    """Plays a Windows system sound."""
+    """Plays a Windows system sound using winsound with musical theory."""
     try:
+        # Frequencies for C Major Scale (C4 - C6)
+        C4, D4, E4, F4, G4, A4, B4 = 261, 293, 329, 349, 392, 440, 493
+        C5, D5, E5, F5, G5, A5, B5 = 523, 587, 659, 698, 784, 880, 987
+        C6 = 1046
+        
         if sound_type == "notify":
-            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+            # Simple Major 3rd (C -> E)
+            winsound.Beep(C5, 100)
+            winsound.Beep(E5, 100)
+            
         elif sound_type == "error":
-            winsound.MessageBeep(winsound.MB_ICONHAND)
+            # Discordant Tritone (C -> F#)
+            winsound.Beep(C4, 200)
+            winsound.Beep(370, 400) # F#4 approx
+            
         elif sound_type == "fail":
-            winsound.Beep(400, 200)
-            winsound.Beep(200, 400)
+            # Descending Chromatic
+            winsound.Beep(G4, 150)
+            winsound.Beep(F4, 150)
+            winsound.Beep(E4, 150)
+            winsound.Beep(D4, 300)
+            
         elif sound_type == "delete":
-            winsound.Beep(300, 100)
+            # Quick descending slide
+            winsound.Beep(G4, 50)
+            winsound.Beep(C4, 100)
+            
         elif sound_type == "back":
-            winsound.Beep(1000, 50)
+            # High staccato
+            winsound.Beep(C5, 50)
+            
         elif sound_type == "shutdown":
-             winsound.Beep(500, 300)
-             time.sleep(0.1)
-             winsound.Beep(300, 500)
+            # Power down (Major Triad descending)
+            winsound.Beep(G4, 150)
+            winsound.Beep(E4, 150)
+            winsound.Beep(C4, 400)
+             
         elif sound_type == "start":
-            winsound.Beep(400, 150)
-            winsound.Beep(600, 150)
+            # Power up (Major Triad ascending)
+            winsound.Beep(C4, 100)
+            winsound.Beep(E4, 100)
+            winsound.Beep(G4, 100)
+            winsound.Beep(C5, 200)
+            
         elif sound_type == "success":
-            winsound.Beep(600, 100)
-            winsound.Beep(800, 100)
-            winsound.Beep(1000, 100)
+            # Victory Fanfare (C Major Arpeggio + High C)
+            winsound.Beep(C5, 80)
+            winsound.Beep(E5, 80)
+            winsound.Beep(G5, 80)
+            winsound.Beep(C6, 200)
+            
         elif sound_type == "jingle":
-            winsound.Beep(440, 100)
-            winsound.Beep(554, 100)
-            winsound.Beep(659, 100)
-            winsound.Beep(880, 200)
+            # Pleasant Melody (C-G-A-E)
+            winsound.Beep(C5, 150)
+            winsound.Beep(G4, 150)
+            winsound.Beep(A4, 150)
+            winsound.Beep(E5, 300)
+            
+        elif sound_type == "complete":
+             # Simple resolution (G -> C)
+            winsound.Beep(G4, 100)
+            winsound.Beep(C5, 300)
+
     except:
         pass
 
@@ -175,7 +239,7 @@ def load_prompts(filepath):
         sys.exit(1)
     return prompts
 
-def query_ollama_stream(model, prompt, temp):
+def query_ollama_stream(model, prompt, temp, json_mode=False):
     url = f"{OLLAMA_API_BASE}/api/generate"
     # Explicitly set context to empty list to ensure statelessness (no memory of previous prompts)
     payload = {
@@ -185,6 +249,9 @@ def query_ollama_stream(model, prompt, temp):
         "stream": True,
         "context": [] 
     }
+    if json_mode:
+        payload["format"] = "json"
+        
     try:
         with requests.post(url, json=payload, stream=True) as response:
             response.raise_for_status()
@@ -203,7 +270,7 @@ def inspect_models_ui(all_models):
     while True:
         # Prepare list for radiolist
         choices = []
-        choices.append(("GET_MORE", "🌐 Find more models on Ollama.com"))
+        choices.append(("GET_MORE", "Find more models on Ollama.com"))
         
         for m in all_models:
             name = m['name']
@@ -345,9 +412,9 @@ def download_model_ui():
         global current_subprocess
         # Setup Progress
         progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
+            SpinnerColumn(spinner_name="dots12", style="bold cyan"),
+            TextColumn("[bold blue]{task.description}", justify="right"),
+            BarColumn(bar_width=None, style="dim white", complete_style="bold cyan", finished_style="bold green"),
             TaskProgressColumn(),
             TimeElapsedColumn(),
             expand=True
@@ -539,9 +606,9 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
 
     # Progress Bar
     progress = Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(bar_width=None, style="black on white", complete_style="blue", finished_style="green"),
+        SpinnerColumn(spinner_name="dots12", style="bold magenta"),
+        TextColumn("[bold magenta]{task.description}", justify="right"),
+        BarColumn(bar_width=None, style="dim white", complete_style="bold magenta", finished_style="bold green"),
         TaskProgressColumn(text_format="[progress.percentage]{task.percentage:>3.2f}%"),
         TimeElapsedColumn(),
         expand=True
@@ -662,7 +729,10 @@ def purge_records_ui():
         return
 
     # UI Style: Default prompt_toolkit style
-    choices = [("ALL", "🚨 PURGE ALL HISTORY (All Models)")] + [(m, m) for m in models]
+    choices = [
+        ("ALL", "PURGE ALL HISTORY (All Models)"),
+        ("EVALS", "Purge All Evaluation Files (*_eval.json)")
+    ] + [(m, m) for m in models]
     
     selected_model = radiolist_dialog(
         title="Purge Records - Select Model",
@@ -672,6 +742,27 @@ def purge_records_ui():
 
     if not selected_model:
         play_sound("back")
+        return
+
+    if selected_model == "EVALS":
+        confirm = button_dialog(
+            title="Confirm Purge Evaluations",
+            text="Are you sure you want to delete ALL evaluation files (*_eval.json)?\nThis will keep the session data but remove analysis.",
+            buttons=[("Yes, Delete Evals", True), ("Cancel", False)]
+        ).run()
+        
+        if confirm:
+            play_sound("delete")
+            count = 0
+            for root, dirs, files in os.walk(OUTPUT_DIR):
+                for file in files:
+                    if file.endswith("_eval.json"):
+                        try:
+                            os.remove(os.path.join(root, file))
+                            count += 1
+                        except Exception:
+                            pass
+            message_dialog(title="Success", text=f"Deleted {count} evaluation files.").run()
         return
 
     if selected_model == "ALL":
@@ -773,17 +864,26 @@ def main():
             values=[
                 ("benchmark", "Run Benchmark"),
                 ("evaluate", "Evaluate Sessions"),
+                ("stats", "View Statistics & Health"),
                 ("purge", "Purge Old Records"),
                 ("inspect", "Browse & Inspect Models"),
                 ("download", "Download New Models"),
-                ("get_more", "🌐 Find more models on Ollama.com"),
-                ("github", "🐙 Visit GitHub Page"),
+                ("get_more", "Find more models on Ollama.com"),
+                ("github", "Visit GitHub Page"),
                 ("exit", "Shut Down")
             ]
         ).run()
 
         if action is None or action == "exit":
             if action is None: play_sound("back")
+            shutdown_animation()
+            sys.exit(0)
+        
+        if action == "stats":
+            show_stats_ui()
+            continue
+        
+        if action == "github":
             shutdown_animation()
             sys.exit(0)
         
@@ -844,7 +944,8 @@ def load_evaluator_prompt():
         # Create default if missing
         default_prompt = (
             "You are an impartial evaluator. Categorize the following answer.\n"
-            "Return a JSON object with 'category' and 'justification'."
+            "Return a JSON object with 'category' and 'justification'.\n"
+            "Do NOT output markdown or code blocks. Output ONLY raw JSON."
         )
         with open(EVALUATOR_PROMPT_FILE, 'w', encoding='utf-8') as f:
             f.write(default_prompt)
@@ -883,9 +984,9 @@ def run_evaluation_session(tasks_map, evaluator_model, prompts_map, crunch_mode=
 
     # Progress Bar
     progress = Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(bar_width=None, style="black on white", complete_style="blue", finished_style="green"),
+        SpinnerColumn(spinner_name="dots12", style="bold yellow"),
+        TextColumn("[bold yellow]{task.description}", justify="right"),
+        BarColumn(bar_width=None, style="dim white", complete_style="bold yellow", finished_style="bold green"),
         TaskProgressColumn(),
         TimeElapsedColumn(),
         expand=True
@@ -921,7 +1022,7 @@ def run_evaluation_session(tasks_map, evaluator_model, prompts_map, crunch_mode=
 
             # Query Evaluator
             response_text = ""
-            for chunk in query_ollama_stream(evaluator_model, full_prompt, 0.1): # Low temp for evaluation
+            for chunk in query_ollama_stream(evaluator_model, full_prompt, 0.1, json_mode=True): # Low temp for evaluation
                 if cancel_event: break
                 response_text += chunk
                 if not crunch_mode or current_live_file == task_info['filename']:
@@ -1079,6 +1180,153 @@ def evaluate_sessions_ui(all_models):
     prompts_map = {p['id']: p['prompt'] for p in prompts_list}
 
     run_evaluation_session(tasks_map, evaluator_model, prompts_map, crunch_mode)
+
+def calculate_and_save_stats():
+    """Calculates stats and saves to file."""
+    if not os.path.exists(OUTPUT_DIR):
+        return "No output directory found."
+
+    total_size = 0
+    file_count = 0
+    
+    # Model Runtime Stats
+    # Structure: { model_name: {'total_duration': 0, 'session_count': 0} }
+    model_runtimes = {}
+    
+    # Eval Stats
+    eval_stats = {'total': 0, 'success': 0, 'failed': 0}
+    
+    # Walk for size and evals
+    for root, dirs, files in os.walk(OUTPUT_DIR):
+        for f in files:
+            fp = os.path.join(root, f)
+            try:
+                size = os.path.getsize(fp)
+                total_size += size
+                file_count += 1
+                
+                if f.endswith("_eval.json"):
+                    eval_stats['total'] += 1
+                    try:
+                        with open(fp, 'r', encoding='utf-8') as json_file:
+                            data = json.load(json_file)
+                            if 'category' in data and 'justification' in data:
+                                eval_stats['success'] += 1
+                            else:
+                                eval_stats['failed'] += 1
+                    except:
+                        eval_stats['failed'] += 1
+            except OSError:
+                pass
+
+    # Walk for Runtimes (Session based)
+    # We need to look at output/Model/SessionID
+    # We can iterate top level directories in output
+    for model_dir in os.listdir(OUTPUT_DIR):
+        model_path = os.path.join(OUTPUT_DIR, model_dir)
+        if os.path.isdir(model_path) and model_dir != "Summaries":
+            
+            if model_dir not in model_runtimes:
+                model_runtimes[model_dir] = {'total_duration': 0, 'session_count': 0}
+                
+            for session_id in os.listdir(model_path):
+                session_path = os.path.join(model_path, session_id)
+                if os.path.isdir(session_path):
+                    # Get all generation files
+                    gen_files = []
+                    for f in os.listdir(session_path):
+                        if f.endswith(".txt") and not f.endswith("_eval.json"):
+                            gen_files.append(os.path.join(session_path, f))
+                    
+                    if len(gen_files) > 1:
+                        try:
+                            # Get min and max mtime
+                            mtimes = [os.path.getmtime(p) for p in gen_files]
+                            start = min(mtimes)
+                            end = max(mtimes)
+                            duration = end - start
+                            
+                            # Filter out unrealistic durations (e.g. < 1s for multiple files)
+                            if duration > 1:
+                                model_runtimes[model_dir]['total_duration'] += duration
+                                model_runtimes[model_dir]['session_count'] += 1
+                        except OSError:
+                            pass
+
+    # Generate Report
+    lines = []
+    lines.append("HEATMAP GENERATOR STATISTICS")
+    lines.append(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append("="*40)
+    
+    # Storage
+    lines.append(f"Storage Used: {format_size(total_size)}")
+    lines.append(f"Total Files: {file_count}")
+    
+    purge_rec = "NO"
+    if total_size > (1024 * 1024 * 500): # 500 MB
+        purge_rec = "YES (Size > 500MB)"
+    lines.append(f"Purge Recommended: {purge_rec}")
+    lines.append("-" * 40)
+    
+    # Evals
+    lines.append("Evaluation Performance")
+    if eval_stats['total'] > 0:
+        success_rate = (eval_stats['success'] / eval_stats['total']) * 100
+        fail_rate = (eval_stats['failed'] / eval_stats['total']) * 100
+        lines.append(f"Total Evaluations: {eval_stats['total']}")
+        lines.append(f"Successful: {eval_stats['success']} ({success_rate:.1f}%)")
+        lines.append(f"Failed/Review: {eval_stats['failed']} ({fail_rate:.1f}%)")
+    else:
+        lines.append("No evaluations found.")
+    lines.append("-" * 40)
+    
+    # Runtimes
+    lines.append("Average Session Runtime (Est.)")
+    lines.append("(Based on file timestamps)")
+    
+    has_runtime = False
+    for model, data in model_runtimes.items():
+        if data['session_count'] > 0:
+            avg_time = data['total_duration'] / data['session_count']
+            lines.append(f"• {model:<20}: {avg_time:.1f}s / session")
+            has_runtime = True
+            
+    if not has_runtime:
+        lines.append("No sufficient data for runtime estimation.")
+        
+    report = "\n".join(lines)
+    
+    with open(STATS_FILE, 'w', encoding='utf-8') as f:
+        f.write(report)
+        
+    return report
+
+def show_stats_ui():
+    """Shows the stats page with loading animation."""
+    
+    # Loading Animation
+    with Live(console=console, refresh_per_second=10) as live:
+        # Create a layout similar to others
+        progress = Progress(
+            SpinnerColumn(spinner_name="dots12", style="bold cyan"),
+            TextColumn("[bold cyan]Analyzing storage and logs...", justify="right"),
+            expand=True
+        )
+        task = progress.add_task("analyze", total=None)
+        
+        layout = create_layout(progress, Text("Please wait...", style="dim white"))
+        live.update(layout)
+        
+        # Simulate work / Calculate
+        time.sleep(1.5) # Artificial delay for the "feel"
+        report = calculate_and_save_stats()
+        
+    # Show Report
+    message_dialog(
+        title="Statistics & Health",
+        text=report
+    ).run()
 
 if __name__ == "__main__":
     print("Starting Heatmap Data Gatherer...")

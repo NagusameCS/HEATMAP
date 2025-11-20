@@ -1,0 +1,13 @@
+HEATMAP GENERATOR STATISTICS
+Generated: 2025-11-20 00:55:17
+========================================
+Storage Used: 69.05 KB
+Total Files: 136
+Purge Recommended: NO
+----------------------------------------
+Evaluation Performance
+No evaluations found.
+----------------------------------------
+Average Session Runtime (Est.)
+(Based on file timestamps)
+• deepseek-r1_1.5b    : 198.7s / session
