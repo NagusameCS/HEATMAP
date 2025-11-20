@@ -321,6 +321,98 @@
         .animation-widget:hover .frame-2 {
             display: block;
         }
+
+        /* Controls Section */
+        .controls-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-weight: 600;
+        }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 2px solid #eee;
+            background: white;
+            font-family: inherit;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: #333;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .checkbox-wrapper:hover {
+            background: #f0f0f0;
+        }
+
+        .checkbox-wrapper.active {
+            background: #e8e8ff;
+            border-color: #4444FE;
+            color: #4444FE;
+        }
+
+        .checkbox-wrapper input {
+            display: none;
+        }
+
+        /* No Releases Found Styling */
+        .no-releases {
+            background: var(--panel-color);
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: 8px 8px 0px var(--shadow-color);
+            border: 2px solid #000;
+            color: #666;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .no-releases .material-symbols-outlined {
+            font-size: 64px;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .no-releases h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .no-releases p {
+            margin: 0;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 
@@ -333,6 +425,35 @@
                 style="font-size: 24px; color: #666; padding: 12px 0 12px 15px;">search</span>
             <input type="text" id="search-input" placeholder="Search releases by version, title, or content..."
                 style="border: none; padding-left: 10px;">
+        </div>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <span class="material-symbols-outlined" style="font-size: 20px;">sort</span>
+                <select id="sort-select">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <span class="material-symbols-outlined" style="font-size: 20px;">filter_alt</span>
+
+                <label class="checkbox-wrapper" id="filter-prerelease-label">
+                    <input type="checkbox" id="filter-prerelease">
+                    <span>Hide Prereleases</span>
+                </label>
+
+                <label class="checkbox-wrapper" id="filter-windows-label">
+                    <input type="checkbox" id="filter-windows">
+                    <span>Windows Only</span>
+                </label>
+
+                <label class="checkbox-wrapper" id="filter-mac-label">
+                    <input type="checkbox" id="filter-mac">
+                    <span>Mac Only</span>
+                </label>
+            </div>
         </div>
 
         <div id="releases-container">
@@ -356,6 +477,12 @@
 
         let allReleases = [];
 
+        // State for filters
+        let currentSort = 'newest';
+        let hidePrereleases = false;
+        let showWindowsOnly = false;
+        let showMacOnly = false;
+
         async function fetchReleases() {
             const container = document.getElementById('releases-container');
             try {
@@ -366,15 +493,64 @@
                 allReleases = await response.json();
 
                 if (allReleases.length === 0) {
-                    container.innerHTML = '<div class="release"><p style="text-align:center">No releases found.</p></div>';
+                    renderNoReleases('No releases found in this repository.');
                     return;
                 }
 
-                renderReleases(allReleases);
+                applyFiltersAndRender();
             } catch (error) {
                 container.innerHTML = `<div class="error"><h3>Error loading releases</h3><p>${error.message}</p></div>`;
                 console.error(error);
             }
+        }
+
+        function renderNoReleases(message) {
+            const container = document.getElementById('releases-container');
+            container.innerHTML = `
+                <div class="no-releases">
+                    <span class="material-symbols-outlined">sentiment_dissatisfied</span>
+                    <h3>No Releases Found</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function applyFiltersAndRender() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+            let filtered = allReleases.filter(release => {
+                // Search Filter
+                const name = (release.name || '').toLowerCase();
+                const tagName = (release.tag_name || '').toLowerCase();
+                const body = (release.body || '').toLowerCase();
+                const matchesSearch = name.includes(searchTerm) || tagName.includes(searchTerm) || body.includes(searchTerm);
+                if (!matchesSearch) return false;
+
+                // Prerelease Filter
+                if (hidePrereleases && release.prerelease) return false;
+
+                // Platform Filters
+                // Check assets and body for keywords
+                const assetsStr = JSON.stringify(release.assets || []).toLowerCase();
+                const contentStr = (name + body + assetsStr).toLowerCase();
+
+                const hasWindows = contentStr.includes('windows') || contentStr.includes('.exe') || contentStr.includes('.msi');
+                const hasMac = contentStr.includes('mac') || contentStr.includes('.dmg') || contentStr.includes('.pkg') || contentStr.includes('darwin');
+
+                if (showWindowsOnly && !hasWindows) return false;
+                if (showMacOnly && !hasMac) return false;
+
+                return true;
+            });
+
+            // Sort
+            filtered.sort((a, b) => {
+                const dateA = new Date(a.published_at);
+                const dateB = new Date(b.published_at);
+                return currentSort === 'newest' ? dateB - dateA : dateA - dateB;
+            });
+
+            renderReleases(filtered);
         }
 
         function renderReleases(releases) {
@@ -382,7 +558,7 @@
             container.innerHTML = '';
 
             if (releases.length === 0) {
-                container.innerHTML = '<div class="release"><p style="text-align:center">No matching releases found.</p></div>';
+                renderNoReleases('Try adjusting your search or filters.');
                 return;
             }
 
@@ -457,9 +633,20 @@
                     </div>
                 `;
 
+                // Tags
+                let tagsHtml = '';
+                if (release.prerelease) {
+                    tagsHtml += '<span style="background:#e3b341; color:black; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Pre-release</span>';
+                } else {
+                    tagsHtml += '<span style="background:#2cbe4e; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Latest</span>';
+                }
+
                 releaseDiv.innerHTML = `
                     <div class="release-header">
-                        <a href="${release.html_url}" class="tag-name" target="_blank">${release.name || release.tag_name}</a>
+                        <div style="display:flex; align-items:center;">
+                            <a href="${release.html_url}" class="tag-name" target="_blank">${release.name || release.tag_name}</a>
+                            ${tagsHtml}
+                        </div>
                         <span class="published-at" style="display: flex; align-items: center; gap: 5px;"><span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span> ${date}</span>
                     </div>
                     <div class="body">${finalBodyContent}</div>
@@ -470,16 +657,37 @@
             });
         }
 
-        // Search functionality
-        document.getElementById('search-input').addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredReleases = allReleases.filter(release => {
-                const name = (release.name || '').toLowerCase();
-                const tagName = (release.tag_name || '').toLowerCase();
-                const body = (release.body || '').toLowerCase();
-                return name.includes(searchTerm) || tagName.includes(searchTerm) || body.includes(searchTerm);
-            });
-            renderReleases(filteredReleases);
+        // Event Listeners
+        document.getElementById('search-input').addEventListener('input', applyFiltersAndRender);
+
+        document.getElementById('sort-select').addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            applyFiltersAndRender();
+        });
+
+        document.getElementById('filter-prerelease').addEventListener('change', (e) => {
+            hidePrereleases = e.target.checked;
+            document.getElementById('filter-prerelease-label').classList.toggle('active', hidePrereleases);
+            applyFiltersAndRender();
+        });
+
+        document.getElementById('filter-windows').addEventListener('change', (e) => {
+            showWindowsOnly = e.target.checked;
+            document.getElementById('filter-windows-label').classList.toggle('active', showWindowsOnly);
+            // Uncheck Mac if Windows is checked (optional, but good for exclusive filtering if desired, though here we allow both)
+            if (showWindowsOnly && showMacOnly) {
+                document.getElementById('filter-mac').click();
+            }
+            applyFiltersAndRender();
+        });
+
+        document.getElementById('filter-mac').addEventListener('change', (e) => {
+            showMacOnly = e.target.checked;
+            document.getElementById('filter-mac-label').classList.toggle('active', showMacOnly);
+            if (showMacOnly && showWindowsOnly) {
+                document.getElementById('filter-windows').click();
+            }
+            applyFiltersAndRender();
         });
 
         // Load marked.js for markdown rendering
