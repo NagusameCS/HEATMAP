@@ -102,15 +102,14 @@
 
         .container {
             flex-grow: 1;
-            margin-left: 80px;
-            /* Offset for sidebar */
-            width: calc(100% - 80px);
-            max-width: 1000px;
-            /* Increased max-width */
-            padding: 40px 40px;
+            margin-left: 120px;
+            /* Increased offset for sidebar */
+            width: calc(100% - 120px);
+            max-width: 1100px;
+            padding: 40px 60px;
+            /* Increased padding */
             box-sizing: border-box;
             margin-right: auto;
-            /* Center content in remaining space */
         }
 
         /* Wiki Container */
@@ -118,22 +117,37 @@
             display: none;
             /* Hidden by default */
             background: var(--panel-color);
-            padding: 40px;
+            padding: 50px;
             border-radius: 16px;
             box-shadow: 8px 8px 0px var(--shadow-color);
             border: 2px solid #000;
             animation: fadeIn 0.5s ease-out;
         }
 
+        .wiki-main-title {
+            font-size: 4em;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 40px;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            border-bottom: 4px solid #000;
+            padding-bottom: 20px;
+            text-shadow: 2px 2px 0px #eee;
+        }
+
         #wiki-content {
             line-height: 1.8;
             color: #333;
+            font-size: 1.1em;
         }
 
         #wiki-content h1 {
-            margin-top: 0;
+            margin-top: 1.5em;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
+            font-size: 2.5em;
         }
 
         #wiki-content a {
@@ -625,6 +639,13 @@
         <div class="sidebar-icon" id="nav-wiki" title="Wiki">
             <span class="material-symbols-outlined" style="font-size: 28px;">menu_book</span>
         </div>
+
+        <!-- Wiki Navigation Container -->
+        <div id="wiki-nav-container"
+            style="display: none; width: 100%; flex-direction: column; align-items: center; border-top: 2px solid #eee; padding-top: 20px; margin-top: 10px;">
+            <!-- Dynamic icons go here -->
+        </div>
+
         <a href="https://github.com/NagusameCS/HEATMAP" target="_blank" class="sidebar-icon" title="View on GitHub"
             style="margin-top: auto; margin-bottom: 20px; text-decoration: none;">
             <span class="material-symbols-outlined" style="font-size: 28px;">code</span>
@@ -677,6 +698,7 @@
 
         <!-- Wiki Section -->
         <div id="wiki-container">
+            <h1 class="wiki-main-title">HEATMAP WIKI</h1>
             <div id="wiki-content">
                 <p class="loading">Loading Wiki...</p>
             </div>
@@ -961,6 +983,7 @@
         // Navigation Logic
         const navReleases = document.getElementById('nav-releases');
         const navWiki = document.getElementById('nav-wiki');
+        const wikiNavContainer = document.getElementById('wiki-nav-container');
         const releasesSection = document.getElementById('releases-section');
         const wikiContainer = document.getElementById('wiki-container');
         const wikiContent = document.getElementById('wiki-content');
@@ -970,6 +993,7 @@
             navWiki.classList.remove('active');
             releasesSection.style.display = 'block';
             wikiContainer.style.display = 'none';
+            wikiNavContainer.style.display = 'none';
         });
 
         navWiki.addEventListener('click', () => {
@@ -977,20 +1001,82 @@
             navReleases.classList.remove('active');
             releasesSection.style.display = 'none';
             wikiContainer.style.display = 'block';
+            wikiNavContainer.style.display = 'flex';
 
             if (wikiContent.innerHTML.includes('Loading Wiki...')) {
-                fetchWiki();
+                loadWikiSystem();
             }
         });
 
-        async function fetchWiki() {
+        async function loadWikiSystem() {
+            await fetchWikiPage('Home');
+            await fetchWikiSidebar();
+        }
+
+        async function fetchWikiSidebar() {
             try {
-                // Try to fetch Home.md from the wiki raw content
-                const wikiUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/Home.md`;
+                const sidebarUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/_Sidebar.md`;
+                const response = await fetch(sidebarUrl);
+                if (response.ok) {
+                    const text = await response.text();
+                    // Parse links: [Label](Link)
+                    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                    let match;
+                    wikiNavContainer.innerHTML = ''; // Clear existing
+
+                    while ((match = linkRegex.exec(text)) !== null) {
+                        const label = match[1];
+                        const page = match[2];
+                        createWikiSidebarIcon(label, page);
+                    }
+                } else {
+                    // Fallback if no sidebar
+                    wikiNavContainer.innerHTML = '';
+                    createWikiSidebarIcon('Home', 'Home');
+                }
+            } catch (e) {
+                console.log('No sidebar found or error fetching it');
+                // Fallback
+                wikiNavContainer.innerHTML = '';
+                createWikiSidebarIcon('Home', 'Home');
+            }
+        }
+
+        function createWikiSidebarIcon(label, page) {
+            const div = document.createElement('div');
+            div.className = 'sidebar-icon';
+            div.title = label;
+
+            // Pick an icon based on label
+            let iconName = 'article';
+            const l = label.toLowerCase();
+            if (l.includes('home')) iconName = 'home';
+            else if (l.includes('install')) iconName = 'download';
+            else if (l.includes('config')) iconName = 'settings';
+            else if (l.includes('usage')) iconName = 'terminal';
+            else if (l.includes('faq')) iconName = 'help';
+            else if (l.includes('changelog')) iconName = 'history';
+
+            div.innerHTML = `<span class="material-symbols-outlined" style="font-size: 24px;">${iconName}</span>`;
+
+            div.onclick = () => {
+                // Remove active class from all wiki icons
+                document.querySelectorAll('#wiki-nav-container .sidebar-icon').forEach(el => el.classList.remove('active'));
+                div.classList.add('active');
+                fetchWikiPage(page);
+            };
+
+            wikiNavContainer.appendChild(div);
+        }
+
+        async function fetchWikiPage(pageName) {
+            wikiContent.innerHTML = '<p class="loading">Loading...</p>';
+            try {
+                const wikiUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/${pageName}.md`;
                 const response = await fetch(wikiUrl);
 
                 if (!response.ok) {
-                    throw new Error('Wiki Home page not found or not accessible.');
+                    throw new Error(`Page '${pageName}' not found.`);
                 }
 
                 const text = await response.text();
@@ -998,31 +1084,27 @@
 
                 wikiContent.innerHTML = html;
 
-                // Fix relative links in wiki
+                // Fix relative links
                 const links = wikiContent.querySelectorAll('a');
                 links.forEach(link => {
                     const href = link.getAttribute('href');
                     if (href && !href.startsWith('http') && !href.startsWith('#')) {
-                        // It's a relative link to another wiki page
-                        // We can't easily handle navigation without a router, so let's link to the actual GitHub Wiki
-                        link.href = `https://github.com/${repoOwner}/${repoName}/wiki/${href}`;
-                        link.target = '_blank';
+                        link.onclick = (e) => {
+                            e.preventDefault();
+                            fetchWikiPage(href);
+                        };
                     }
                 });
 
             } catch (error) {
                 wikiContent.innerHTML = `
                         <div class="error">
-                            <h3>Could not load Wiki content</h3>
+                            <h3>Could not load page: ${pageName}</h3>
                             <p>${error.message}</p>
-                            <p>You can view the Wiki directly on GitHub:</p>
-                            <a href="https://github.com/${repoOwner}/${repoName}/wiki" target="_blank" style="color: #c62828; font-weight: bold;">Open GitHub Wiki</a>
                         </div>
                     `;
             }
-        }
-
-        // Load marked.js for markdown rendering
+        }        // Load marked.js for markdown rendering
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
         script.onload = fetchReleases;
