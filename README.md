@@ -1,4 +1,4 @@
-# HEATMAP — Local LLM Benchmarking & Heatmap Generator (Beta 1.0)
+# HEATMAP — Local LLM Benchmarking & Heatmap Generator
 
 Overview
 --------
