@@ -1,0 +1,101 @@
+id,prompt
+1,What is 2 + 2?
+2,Calculate 15 * 24.
+3,What is the square root of 144?
+4,Evaluate 100 divided by 4.
+5,What is 2 to the power of 10?
+6,Calculate 123 + 456.
+7,What is 1000 minus 345?
+8,Find the remainder of 25 divided by 7.
+9,What is 15% of 200?
+10,Calculate the cube root of 27.
+11,Solve for x: 2x + 5 = 15.
+12,Solve for x: 3x - 7 = 20.
+13,Solve for x: x/4 + 2 = 5.
+14,Solve for x: 5x = 100.
+15,Solve for x: 2(x + 3) = 14.
+16,Factor the quadratic: x^2 + 5x + 6.
+17,Solve for x: x^2 - 9 = 0.
+18,Expand (x + 3)(x - 3).
+19,Simplify: 2x + 3y + 5x - y.
+20,Solve the system: x + y = 10, x - y = 2.
+21,Solve for x: 3x + 4 = 5x - 6.
+22,What is the slope of the line y = 3x + 2?
+23,Find the y-intercept of y = 2x - 5.
+24,Solve for x: |x| = 5.
+25,Solve the inequality: 2x > 10.
+26,Solve for x: sqrt(x) = 9.
+27,Simplify (x^2)^3.
+28,What is the value of x if log_10(x) = 2?
+29,Solve for x: e^x = 1.
+30,Find the roots of x^2 - 4x + 4 = 0.
+31,Calculate the area of a circle with radius 5.
+32,Find the perimeter of a rectangle with sides 4 and 7.
+33,What is the volume of a cube with side length 3?
+34,Find the hypotenuse of a right triangle with legs 3 and 4.
+35,Calculate the sum of angles in a triangle.
+36,What is the area of a triangle with base 10 and height 5?
+37,Find the circumference of a circle with diameter 10.
+38,Calculate the volume of a sphere with radius 2.
+39,What is the surface area of a cube with side 2?
+40,Find the length of the diagonal of a square with side 1.
+41,What is the derivative of x^2?
+42,Find the integral of 2x dx.
+43,What is the derivative of sin(x)?
+44,Evaluate the integral of 1/x dx.
+45,What is the limit of 1/x as x approaches infinity?
+46,Find the derivative of e^x.
+47,Calculate the definite integral of x from 0 to 2.
+48,What is the derivative of ln(x)?
+49,Find the second derivative of x^3.
+50,What is the limit of (sin x)/x as x approaches 0?
+51,Is 17 a prime number?
+52,List the first 5 prime numbers.
+53,Find the greatest common divisor of 12 and 18.
+54,Find the least common multiple of 4 and 6.
+55,What is the prime factorization of 60?
+56,Is 2024 divisible by 4?
+57,Convert 101 binary to decimal.
+58,Convert 15 decimal to hexadecimal.
+59,What is 5 modulo 2?
+60,Are 15 and 28 coprime?
+61,What is the probability of flipping heads on a fair coin?
+62,What is the probability of rolling a 6 on a standard die?
+63,Calculate the mean of 1, 2, 3, 4, 5.
+64,Find the median of 1, 3, 3, 6, 7, 8, 9.
+65,What is 5 factorial (5!)?
+66,How many ways can you arrange 3 books on a shelf?
+67,Calculate the combination 5 choose 2.
+68,What is the probability of drawing an Ace from a standard deck?
+69,If you roll two dice, what is the probability of getting a sum of 2?
+70,What is the standard deviation of 2, 2, 2?
+71,If A implies B, and A is true, what is B?
+72,What is the negation of "All swans are white"?
+73,Solve the logic puzzle: If it rains, the ground is wet. The ground is not wet. Did it rain?
+74,True or False: If P is true and Q is false, then P AND Q is true.
+75,Complete the sequence: 2, 4, 8, 16, ...
+76,Complete the sequence: 1, 1, 2, 3, 5, ...
+77,What comes next: 1, 4, 9, 16, ...?
+78,If all A are B, and some B are C, are some A definitely C?
+79,Solve: A bat and a ball cost $1.10. The bat costs $1.00 more than the ball. How much is the ball?
+80,If 5 machines take 5 minutes to make 5 widgets, how long does it take 100 machines to make 100 widgets?
+81,A train travels 60 mph. How far does it go in 2.5 hours?
+82,If you buy 3 apples for $2, how much for 12 apples?
+83,John is twice as old as Mary. Mary is 10. How old is John?
+84,A rectangle's length is twice its width. Perimeter is 30. Find dimensions.
+85,If 1 kg is 2.2 lbs, how many lbs in 5 kg?
+86,Divide 30 by 1/2 and add 10. What is the answer?
+87,A farmer has 17 sheep and all but 9 die. How many are left?
+88,How many months have 28 days?
+89,If you have a 3 gallon jug and a 5 gallon jug, how do you measure 4 gallons?
+90,Two fathers and two sons go fishing. They catch 3 fish and each gets one. How?
+91,What is sin(30 degrees)?
+92,What is cos(0)?
+93,What is tan(45 degrees)?
+94,Convert 180 degrees to radians.
+95,What is the value of pi to 2 decimal places?
+96,Multiply matrix [[1,2],[3,4]] by [[1,0],[0,1]].
+97,What is the determinant of [[1,2],[3,4]]?
+98,What is the dot product of vectors (1,2) and (3,4)?
+99,What is the magnitude of vector (3,4)?
+100,What is the identity matrix for 2x2?
