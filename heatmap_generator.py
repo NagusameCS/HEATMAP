@@ -14,6 +14,8 @@ import datetime
 import shutil
 import webbrowser
 import re
+import atexit
+import signal
 from prompt_toolkit.shortcuts import checkboxlist_dialog, radiolist_dialog, message_dialog, button_dialog, input_dialog
 from prompt_toolkit.styles import Style
 from rich.console import Console, Group
@@ -37,6 +39,45 @@ OUTPUT_DIR = "output"
 TEMPERATURES = [round(x * 0.1, 1) for x in range(11)]
 
 console = Console()
+
+# Global to track subprocess for cleanup
+current_subprocess = None
+
+def cleanup_resources():
+    """Cleans up resources (subprocesses, loaded models) on exit."""
+    global current_subprocess
+    
+    # 1. Kill subprocess if running
+    if current_subprocess and current_subprocess.poll() is None:
+        try:
+            current_subprocess.terminate()
+            # Give it a moment, then force kill if needed
+            try:
+                current_subprocess.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                current_subprocess.kill()
+        except Exception:
+            pass
+
+    # 2. Unload all models from Ollama
+    try:
+        # Get running models
+        response = requests.get(f"{OLLAMA_API_BASE}/api/ps")
+        if response.status_code == 200:
+            data = response.json()
+            models = data.get('models', [])
+            for m in models:
+                model_name = m['name']
+                # Unload by sending keep_alive=0
+                requests.post(f"{OLLAMA_API_BASE}/api/generate", json={
+                    "model": model_name,
+                    "keep_alive": 0
+                })
+    except Exception:
+        pass
+
+# Register cleanup
+atexit.register(cleanup_resources)
 
 def get_system_memory_gb():
     """Returns total system RAM in GB."""
@@ -301,6 +342,7 @@ def download_model_ui():
     ).run()
 
     if model_name:
+        global current_subprocess
         # Setup Progress
         progress = Progress(
             SpinnerColumn(),
@@ -341,6 +383,7 @@ def download_model_ui():
                         encoding='utf-8',
                         bufsize=1
                     )
+                    current_subprocess = process
                     
                     while True:
                         line = process.stdout.readline()
@@ -369,6 +412,7 @@ def download_model_ui():
                     else:
                         retry_count += 1
                         play_sound("fail")
+                    current_subprocess = None
                 except FileNotFoundError:
                     play_sound("error")
                     message_dialog(title="Error", text="Ollama executable not found. Is it installed and in PATH?").run()
