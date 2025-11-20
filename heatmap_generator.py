@@ -760,11 +760,13 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False, res
         cancel_event = True
         play_sound("error")
     except Exception as e:
+        cancel_event = True # Treat critical errors as cancellation to preserve memory
         console.print(f"[bold red]Critical Error:[/bold red] {e}")
         play_sound("error")
 
     if not cancel_event:
         play_sound("success")
+        generate_heatmaps(heatmap_data, selected_models_names, session_id)
         clear_memory()
     else:
         console.print("[yellow]Session paused/cancelled. Progress saved.[/yellow]")

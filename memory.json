@@ -596,23 +596,84 @@
                 "0.4": "deepseek-r1_1.5b.t04,num7.txt",
                 "0.5": "deepseek-r1_1.5b.t05,num7.txt",
                 "0.6": "deepseek-r1_1.5b.t06,num7.txt",
-                "0.7": "deepseek-r1_1.5b.t07,num7.txt"
+                "0.7": "deepseek-r1_1.5b.t07,num7.txt",
+                "0.8": "deepseek-r1_1.5b.t08,num7.txt",
+                "0.9": "deepseek-r1_1.5b.t09,num7.txt",
+                "1.0": "deepseek-r1_1.5b.t10,num7.txt"
             }
         },
         "8": {
-            "deepseek-r1:1.5b": {}
+            "deepseek-r1:1.5b": {
+                "0.0": "deepseek-r1_1.5b.t00,num8.txt",
+                "0.1": "deepseek-r1_1.5b.t01,num8.txt",
+                "0.2": "deepseek-r1_1.5b.t02,num8.txt",
+                "0.3": "deepseek-r1_1.5b.t03,num8.txt",
+                "0.4": "deepseek-r1_1.5b.t04,num8.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num8.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num8.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num8.txt",
+                "0.8": "deepseek-r1_1.5b.t08,num8.txt",
+                "0.9": "deepseek-r1_1.5b.t09,num8.txt",
+                "1.0": "deepseek-r1_1.5b.t10,num8.txt"
+            }
         },
         "9": {
-            "deepseek-r1:1.5b": {}
+            "deepseek-r1:1.5b": {
+                "0.0": "deepseek-r1_1.5b.t00,num9.txt",
+                "0.1": "deepseek-r1_1.5b.t01,num9.txt",
+                "0.2": "deepseek-r1_1.5b.t02,num9.txt",
+                "0.3": "deepseek-r1_1.5b.t03,num9.txt",
+                "0.4": "deepseek-r1_1.5b.t04,num9.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num9.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num9.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num9.txt",
+                "0.8": "deepseek-r1_1.5b.t08,num9.txt",
+                "0.9": "deepseek-r1_1.5b.t09,num9.txt",
+                "1.0": "deepseek-r1_1.5b.t10,num9.txt"
+            }
         },
         "10": {
-            "deepseek-r1:1.5b": {}
+            "deepseek-r1:1.5b": {
+                "0.0": "deepseek-r1_1.5b.t00,num10.txt",
+                "0.1": "deepseek-r1_1.5b.t01,num10.txt",
+                "0.2": "deepseek-r1_1.5b.t02,num10.txt",
+                "0.3": "deepseek-r1_1.5b.t03,num10.txt",
+                "0.4": "deepseek-r1_1.5b.t04,num10.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num10.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num10.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num10.txt",
+                "0.8": "deepseek-r1_1.5b.t08,num10.txt",
+                "0.9": "deepseek-r1_1.5b.t09,num10.txt",
+                "1.0": "deepseek-r1_1.5b.t10,num10.txt"
+            }
         },
         "11": {
-            "deepseek-r1:1.5b": {}
+            "deepseek-r1:1.5b": {
+                "0.0": "deepseek-r1_1.5b.t00,num11.txt",
+                "0.1": "deepseek-r1_1.5b.t01,num11.txt",
+                "0.2": "deepseek-r1_1.5b.t02,num11.txt",
+                "0.3": "deepseek-r1_1.5b.t03,num11.txt",
+                "0.4": "deepseek-r1_1.5b.t04,num11.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num11.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num11.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num11.txt",
+                "0.8": "deepseek-r1_1.5b.t08,num11.txt",
+                "0.9": "deepseek-r1_1.5b.t09,num11.txt",
+                "1.0": "deepseek-r1_1.5b.t10,num11.txt"
+            }
         },
         "12": {
-            "deepseek-r1:1.5b": {}
+            "deepseek-r1:1.5b": {
+                "0.0": "deepseek-r1_1.5b.t00,num12.txt",
+                "0.1": "deepseek-r1_1.5b.t01,num12.txt",
+                "0.2": "deepseek-r1_1.5b.t02,num12.txt",
+                "0.3": "deepseek-r1_1.5b.t03,num12.txt",
+                "0.4": "deepseek-r1_1.5b.t04,num12.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num12.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num12.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num12.txt",
+                "0.8": "deepseek-r1_1.5b.t08,num12.txt"
+            }
         },
         "13": {
             "deepseek-r1:1.5b": {}
