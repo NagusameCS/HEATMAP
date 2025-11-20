@@ -54,6 +54,7 @@ import tempfile
 import getpass
 import argparse
 import shlex
+import statistics
 from prompt_toolkit.shortcuts import checkboxlist_dialog, radiolist_dialog, message_dialog, button_dialog, input_dialog
 from prompt_toolkit.styles import Style
 from rich.console import Console, Group
@@ -1039,6 +1040,208 @@ def purge_records_ui():
             # UI Style: Default prompt_toolkit style
             message_dialog(title="Success", text="Sessions deleted.").run()
 
+
+def compute_accuracy_from_data(data):
+    """Heuristic extraction of accuracy (0-1) from an evaluation JSON structure.
+    Returns float between 0 and 1 or None if not found.
+    """
+    try:
+        # If it's a dict with a direct accuracy field
+        if isinstance(data, dict):
+            for key in ("accuracy", "acc", "accuracy_pct", "accuracy_percent", "accuracy_percentile", "score"):
+                if key in data:
+                    val = data[key]
+                    try:
+                        valf = float(val)
+                        # normalize percentages >1
+                        if valf > 1:
+                            valf = valf / 100.0
+                        if 0.0 <= valf <= 1.0:
+                            return valf
+                    except Exception:
+                        pass
+
+            # If evaluator returned a category label like 'factual' / 'incoherent'
+            for key in ("label", "category", "classification", "result", "judgment", "verdict"):
+                if key in data and isinstance(data[key], str):
+                    valstr = data[key].strip().lower()
+                    if 'factual' in valstr or 'correct' in valstr or 'true' in valstr:
+                        return 1.0
+                    if 'incoherent' in valstr or 'incorrect' in valstr or 'false' in valstr or 'halluc' in valstr:
+                        return 0.0
+
+            # correct/total pattern
+            if "correct" in data and "total" in data:
+                try:
+                    c = float(data.get("correct", 0))
+                    t = float(data.get("total", 0))
+                    if t > 0:
+                        return max(0.0, min(1.0, c / t))
+                except Exception:
+                    pass
+
+            # results list with booleans or dicts containing 'correct' or textual labels
+            if "results" in data and isinstance(data["results"], list) and data["results"]:
+                items = data["results"]
+                truths = 0
+                total = 0
+                for it in items:
+                    total += 1
+                    if isinstance(it, bool):
+                        if it:
+                            truths += 1
+                    elif isinstance(it, dict) and it.get("correct") in (True, "true", "True", 1, "1"):
+                        truths += 1
+                    elif isinstance(it, dict):
+                        # check textual label
+                        for labk in ("label", "category", "classification", "result"):
+                            if labk in it and isinstance(it[labk], str):
+                                s = it[labk].strip().lower()
+                                if 'factual' in s or 'correct' in s or 'true' in s:
+                                    truths += 1
+                                    break
+                if total:
+                    return truths / total
+
+        # If it's a list of booleans or dicts
+        if isinstance(data, list) and data:
+            truths = 0
+            total = 0
+            for it in data:
+                total += 1
+                if isinstance(it, bool) and it:
+                    truths += 1
+                elif isinstance(it, dict) and it.get("correct") in (True, "true", "True", 1, "1"):
+                    truths += 1
+                elif isinstance(it, dict):
+                    for labk in ("label", "category", "classification", "result"):
+                        if labk in it and isinstance(it[labk], str):
+                            s = it[labk].strip().lower()
+                            if 'factual' in s or 'correct' in s or 'true' in s:
+                                truths += 1
+                                break
+            if total:
+                return truths / total
+    except Exception:
+        pass
+    return None
+
+
+def aggregate_jsons_and_heatmap():
+    """Scan `OUTPUT_DIR` for JSON files, separate syntactically invalid files,
+    create a super JSON of valid parses, and produce a heatmap CSV of accuracy
+    by model (rows) vs temperature (columns).
+    """
+    summaries_dir = os.path.join(OUTPUT_DIR, "Summaries")
+    os.makedirs(summaries_dir, exist_ok=True)
+
+    valid_entries = []
+    invalid_entries = []
+
+    for root, dirs, files in os.walk(OUTPUT_DIR):
+        # skip summaries dir
+        if os.path.basename(root) == "Summaries":
+            continue
+        for fname in files:
+            if not fname.lower().endswith('.json'):
+                continue
+            path = os.path.join(root, fname)
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                # infer model from path: OUTPUT_DIR/<model>/<session>/file.json
+                rel = os.path.relpath(path, OUTPUT_DIR)
+                parts = rel.split(os.sep)
+                model = parts[0] if len(parts) >= 3 else (parts[-2] if len(parts) >= 2 else 'unknown')
+
+                # infer temperature from filename (.tXX pattern), else try keys
+                temp = None
+                m = re.search(r'\.t(\d{2})', fname)
+                if m:
+                    try:
+                        temp = int(m.group(1)) / 10.0
+                    except Exception:
+                        temp = None
+                if temp is None:
+                    # try common keys
+                    if isinstance(data, dict):
+                        temp = data.get('temperature') or data.get('temp') or data.get('temperature_setting')
+                        try:
+                            if temp is not None:
+                                temp = float(temp)
+                        except Exception:
+                            temp = None
+
+                accuracy = compute_accuracy_from_data(data)
+
+                valid_entries.append({
+                    'file': path,
+                    'model': model,
+                    'temp': temp,
+                    'accuracy': accuracy,
+                    'data': data
+                })
+            except Exception as e:
+                invalid_entries.append({'file': path, 'error': str(e)})
+
+    # Save aggregated JSONs
+    super_path = os.path.join(summaries_dir, 'super_valid.json')
+    invalid_path = os.path.join(summaries_dir, 'invalid_files.json')
+    try:
+        with open(super_path, 'w', encoding='utf-8') as f:
+            json.dump(valid_entries, f, indent=2)
+    except Exception:
+        pass
+    try:
+        with open(invalid_path, 'w', encoding='utf-8') as f:
+            json.dump(invalid_entries, f, indent=2)
+    except Exception:
+        pass
+
+    # Build heatmap aggregation: model -> temp -> list of accuracies
+    heatmap = {}
+    temps_set = set()
+    for e in valid_entries:
+        model = e.get('model') or 'unknown'
+        temp = e.get('temp')
+        acc = e.get('accuracy')
+        if acc is None or temp is None:
+            continue
+        try:
+            t = float(temp)
+        except Exception:
+            continue
+        temps_set.add(t)
+        heatmap.setdefault(model, {}).setdefault(t, []).append(float(acc))
+
+    temps_list = sorted(temps_set)
+    models = sorted(heatmap.keys())
+
+    # Write CSV: Model, temp columns (0.0..1.0)
+    csv_path = os.path.join(summaries_dir, 'heatmap.csv')
+    try:
+        with open(csv_path, 'w', newline='', encoding='utf-8') as csvf:
+            writer = csv.writer(csvf)
+            header = ['Model'] + [f"{t:.1f}" for t in temps_list]
+            writer.writerow(header)
+            for model in models:
+                row = [model]
+                for t in temps_list:
+                    vals = heatmap.get(model, {}).get(t, [])
+                    if vals:
+                        avg = statistics.mean(vals)
+                        # clamp to 0-1
+                        avg = max(0.0, min(1.0, avg))
+                        row.append(f"{avg:.4f}")
+                    else:
+                        row.append('')
+                writer.writerow(row)
+    except Exception:
+        pass
+
+    message_dialog(title="Aggregation Complete", text=f"Processed {len(valid_entries)} valid JSONs, {len(invalid_entries)} invalid.\nSuper JSON: {super_path}\nInvalid list: {invalid_path}\nHeatmap CSV: {csv_path}").run()
+
 def shutdown_animation():
     """Plays a TV turn-off animation."""
     play_sound("shutdown")
@@ -1098,6 +1301,7 @@ def main():
             menu_items.append(("benchmark", "Run Benchmark"))
             
         menu_items.extend([
+            ("aggregate", "Aggregate JSONs & Create Heatmap"),
             ("evaluate", "Evaluate Sessions"),
             ("stats", "View Statistics & Health"),
             ("purge", "Purge Old Records"),
@@ -1148,6 +1352,9 @@ def main():
                 run_benchmark_session(r_models, r_prompts, crunch_mode=r_crunch, resume_state=resume_state)
             else:
                 console.print("[red]No save state found.[/red]")
+            continue
+        if action == "aggregate":
+            aggregate_jsons_and_heatmap()
             continue
         
         if action == "stats":

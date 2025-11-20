@@ -159,6 +159,8 @@ def main():
         ok = open_in_new_terminal(cmd, dry_run=args.dry_run)
         if not ok:
             message_dialog(title='Error', text='Could not open a dedicated terminal window.').run()
+            return False
+        return True
 
     def launch_current():
         cmd_list = [python_exe, script] + list(extra)
@@ -190,13 +192,18 @@ def main():
                     continue
                 if confirm == 'kill':
                     kill_instance(running_pid)
-                    launch_dedicated()
+                    ok = launch_dedicated()
+                    if ok:
+                        # Dedicated terminal launched; close the launcher window
+                        sys.exit(0)
                 elif confirm == 'bring':
                     ok = bring_existing_to_front(running_pid)
                     if not ok:
                         message_dialog(title='Info', text='Could not focus existing window.').run()
             else:
-                launch_dedicated()
+                ok = launch_dedicated()
+                if ok:
+                    sys.exit(0)
 
         elif action == 'current':
             if running_pid:
