@@ -1,4 +1,0 @@
-requests
-rich
-prompt_toolkit
-psutil
