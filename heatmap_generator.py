@@ -946,49 +946,73 @@ def run_evaluation_session(tasks_map, evaluator_model, prompts_map, crunch_mode=
 
 def evaluate_sessions_ui(all_models):
     """UI to setup evaluation session."""
-    # 1. Select Models to Evaluate (Target Models)
-    target_models = select_models_ui(all_models)
-    if not target_models: return
-
-    # 2. Select Sessions for each model
-    tasks_map = {} # model -> [session_paths]
-    
-    for model in target_models:
-        safe_name = model.replace(':', '_')
-        model_dir = os.path.join(OUTPUT_DIR, safe_name)
-        if not os.path.exists(model_dir):
-            continue
-            
-        sessions = [d for d in os.listdir(model_dir) if os.path.isdir(os.path.join(model_dir, d))]
-        if not sessions: continue
-        
-        # Ask: All or Specific?
-        choice = button_dialog(
-            title=f"Sessions for {model}",
-            text=f"Found {len(sessions)} sessions for {model}.\nEvaluate ALL or SELECT specific?",
-            buttons=[("Evaluate ALL", "ALL"), ("Select Specific", "SELECT"), ("Skip Model", "SKIP")]
-        ).run()
-        
-        if choice == "SKIP": continue
-        
-        selected_sessions = []
-        if choice == "ALL":
-            selected_sessions = sessions
-        else:
-            selected_sessions = checkboxlist_dialog(
-                title=f"Select Sessions - {model}",
-                text="Select sessions to evaluate:",
-                values=[(s, s) for s in sessions]
-            ).run()
-            
-        if selected_sessions:
-            tasks_map[model] = [os.path.join(model_dir, s) for s in selected_sessions]
-
-    if not tasks_map:
-        message_dialog(title="Info", text="No sessions selected.").run()
+    # 1. Gather all available sessions from disk
+    if not os.path.exists(OUTPUT_DIR):
+        message_dialog(title="Info", text="No output directory found.").run()
         return
 
-    # 3. Select Evaluator Model
+    available_sessions = [] 
+    
+    # Iterate over directories in OUTPUT_DIR
+    for model_dir in os.listdir(OUTPUT_DIR):
+        model_path = os.path.join(OUTPUT_DIR, model_dir)
+        if os.path.isdir(model_path) and model_dir != "Summaries":
+            for session_id in os.listdir(model_path):
+                session_path = os.path.join(model_path, session_id)
+                if os.path.isdir(session_path):
+                    available_sessions.append({
+                        "model": model_dir,
+                        "session": session_id,
+                        "path": session_path
+                    })
+    
+    if not available_sessions:
+        message_dialog(title="Info", text="No sessions found.").run()
+        return
+
+    # Sort by model then session
+    available_sessions.sort(key=lambda x: (x['model'], x['session']))
+
+    # 2. Prepare choices for CheckboxList
+    choices = []
+    choices.append(("ALL", " [ SELECT ALL SESSIONS ]"))
+    
+    for s in available_sessions:
+        display = f"{s['model']} | {s['session']}"
+        value = s['path']
+        choices.append((value, display))
+
+    # 3. Show Dialog
+    selected_values = checkboxlist_dialog(
+        title="Select Sessions to Evaluate",
+        text="Pick sessions (grouped by model).\nSelect 'SELECT ALL SESSIONS' to include everything.",
+        values=choices
+    ).run()
+
+    if not selected_values:
+        return
+
+    # Process selection
+    final_session_paths = []
+    if "ALL" in selected_values:
+        final_session_paths = [s['path'] for s in available_sessions]
+    else:
+        final_session_paths = selected_values
+
+    # Group by model for the runner
+    tasks_map = {}
+    for path in final_session_paths:
+        parent_dir = os.path.dirname(path)
+        model_name = os.path.basename(parent_dir)
+        
+        if model_name not in tasks_map:
+            tasks_map[model_name] = []
+        tasks_map[model_name].append(path)
+
+    if not tasks_map:
+        return
+
+    # 4. Select Evaluator Model
     choices = [(m['name'], f"{m['name']} ({format_size(m['size'])})") for m in all_models]
     evaluator_model = radiolist_dialog(
         title="Select Evaluator Model",
@@ -998,7 +1022,7 @@ def evaluate_sessions_ui(all_models):
     
     if not evaluator_model: return
 
-    # 4. Crunch Mode?
+    # 5. Crunch Mode?
     crunch_mode = button_dialog(
         title="Evaluation Mode",
         text="Enable Crunch Mode? (Parallel Processing)\n\n"
