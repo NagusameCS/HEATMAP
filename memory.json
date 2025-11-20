@@ -593,7 +593,10 @@
                 "0.1": "deepseek-r1_1.5b.t01,num7.txt",
                 "0.2": "deepseek-r1_1.5b.t02,num7.txt",
                 "0.3": "deepseek-r1_1.5b.t03,num7.txt",
-                "0.4": "deepseek-r1_1.5b.t04,num7.txt"
+                "0.4": "deepseek-r1_1.5b.t04,num7.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num7.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num7.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num7.txt"
             }
         },
         "8": {
