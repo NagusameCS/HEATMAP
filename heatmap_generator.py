@@ -137,8 +137,8 @@ def check_resource_compatibility(model_size_bytes, system_ram_gb):
     Note: This is a rough estimate. LLMs often need VRAM for speed, but can run on RAM.
     """
     model_size_gb = model_size_bytes / (1024**3)
-    # Heuristic: If model size is > 90% of total RAM, it's risky.
-    if model_size_gb > (system_ram_gb * 0.9):
+    # Heuristic: If model size is > 80% of total RAM, it's risky.
+    if model_size_gb > (system_ram_gb * 0.8):
         return False, f"Model size ({model_size_gb:.2f} GB) is very close to or exceeds total RAM ({system_ram_gb} GB)."
     return True, "Likely fits in RAM."
 
@@ -582,13 +582,13 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False, res
         
         total_size_gb = total_size_bytes / (1024**3)
         sys_ram_gb = get_system_memory_gb()
-        limit_gb = sys_ram_gb * 0.75
+        limit_gb = sys_ram_gb * 0.80
         
         if total_size_gb > limit_gb:
             cont = button_dialog(
                 title="RAM Warning",
                 text=f"Selected models require {total_size_gb:.2f} GB RAM.\n"
-                     f"Limit (75% of System): {limit_gb:.2f} GB.\n\n"
+                     f"Limit (80% of System): {limit_gb:.2f} GB.\n\n"
                      "System might become unresponsive.",
                 buttons=[("Continue", True), ("Cancel", False)]
             ).run()
