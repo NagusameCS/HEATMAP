@@ -290,8 +290,9 @@ def play_sound(sound_type="notify"):
         C6 = 1046
 
         if sound_type == "notify":
-            play_tone(C5, 100)
-            play_tone(E5, 100)
+            # Shorten notify tones to make the notification feel snappier
+            play_tone(C5, 40)
+            play_tone(E5, 40)
 
         elif sound_type == "error":
             play_tone(C4, 200)
@@ -1130,7 +1131,20 @@ def main():
                     console.print("[red]Corrupt save file. Clearing memory.[/red]")
                     clear_memory()
                     continue
-                
+                # Show a short intermediary screen to smooth the transition
+                try:
+                    from rich.panel import Panel
+                    from rich.spinner import Spinner
+                    # Small transient screen to indicate resume work
+                    with Live(Panel(Spinner('dots', text='Resuming session...'), title='Resuming', width=40), console=console, refresh_per_second=12, screen=False):
+                        time.sleep(1.0)
+                except Exception:
+                    # Fallback: simple notify sound if rich Live isn't available
+                    try:
+                        play_sound('notify')
+                    except Exception:
+                        pass
+
                 run_benchmark_session(r_models, r_prompts, crunch_mode=r_crunch, resume_state=resume_state)
             else:
                 console.print("[red]No save state found.[/red]")
