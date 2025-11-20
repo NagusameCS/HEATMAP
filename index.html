@@ -462,11 +462,57 @@
             margin: 0;
             font-size: 1.1em;
         }
+
+        /* Navigation Tabs */
+        .main-nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .nav-tab {
+            background: rgba(253, 254, 254, 0.8);
+            padding: 12px 30px;
+            border-radius: 16px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 800;
+            font-size: 1.2em;
+            border: 2px solid #000;
+            box-shadow: 4px 4px 0px var(--shadow-color);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-tab:hover {
+            transform: translateY(-2px);
+            background: #fff;
+            color: var(--accent-color);
+        }
+
+        .nav-tab.active {
+            background: var(--panel-color);
+            color: var(--accent-color);
+            border-color: #000;
+        }
     </style>
 </head>
 
 <body>
     <div class="container" style="padding-bottom: 100px;">
+        <nav class="main-nav">
+            <a href="#" class="nav-tab active">
+                <span class="material-symbols-outlined">rocket_launch</span>
+                Releases
+            </a>
+            <a href="https://github.com/NagusameCS/HEATMAP/wiki" class="nav-tab" target="_blank">
+                <span class="material-symbols-outlined">menu_book</span>
+                Wiki
+            </a>
+        </nav>
         <h1>HEATMAP Releases</h1>
 
         <div class="controls-section">
