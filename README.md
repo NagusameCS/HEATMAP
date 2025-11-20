@@ -36,7 +36,3 @@ Run the script:
 
 -   **Text Responses**: Saved in `output/<model_name>/`.
     -   Filename format: `<model>.t<temp>,num<id>.txt`
--   **Heatmap CSV**: Generated as `heatmap_query_<id>.csv`.
-    -   Rows: Models
-    -   Columns: Temperatures
-    -   Cells: Filenames of the generated responses.

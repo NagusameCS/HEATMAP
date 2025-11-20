@@ -1,0 +1,23 @@
+To calculate \( 15 \times 24 \), follow these simple steps:
+
+1. **Break down the numbers based on place value:**
+   - \( 15 = 10 + 5 \)
+   - \( 24 = 20 + 4 \)
+
+2. **Multiply each part separately:**
+   
+   - \( (10) \times (20) = 200 \)
+   - \( (10) \times (4) = 40 \)
+   - \( (5) \times (20) = 100 \)
+   - \( (5) \times (4) = 20 \)
+
+3. **Add all the products together:**
+   
+   \[
+   200 + 40 + 100 + 20 = 360
+   \]
+
+**Final Answer:**  
+\[
+\boxed{360}
+\]

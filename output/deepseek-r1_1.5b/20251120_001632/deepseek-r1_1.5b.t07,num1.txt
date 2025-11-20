@@ -1,0 +1,11 @@
+**Solution:**
+
+To find the sum of \(2\) and \(2\), follow these simple steps:
+
+1. **Addition:** 
+   \[
+   2 + 2 = 4
+   \]
+
+2. **Conclusion:**
+   The result of \(2 + 2\) is \(\boxed{4}\).

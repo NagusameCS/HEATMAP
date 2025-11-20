@@ -1,0 +1,18 @@
+Sure! Let's break down the addition step by step.
+
+**Step 1:**  
+Start with the first number:  
+\[ 2 \]
+
+**Step 2:**  
+Add the second number to it:  
+\[ 2 + 2 \]
+
+**Step 3:**  
+Perform the addition:  
+\[ 2 + 2 = 4 \]
+
+**Final Answer:**  
+\[
+\boxed{4}
+\]

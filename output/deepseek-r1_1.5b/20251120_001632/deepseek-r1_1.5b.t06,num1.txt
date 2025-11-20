@@ -1,0 +1,26 @@
+Sure! Let's solve the simple addition problem step by step:
+
+\[
+2 + 2 = \boxed{4}
+\]
+
+**Step-by-Step Explanation:**
+
+1. **Identify the Numbers:**  
+   We are adding two numbers, which are both 2.
+
+2. **Add the Numbers:**  
+   \[
+   2 + 2
+   \]
+   
+3. **Calculate the Sum:**  
+   When we add 2 and 2 together, we get:
+   \[
+   4
+   \]
+
+**Final Answer:**
+\[
+\boxed{4}
+\]

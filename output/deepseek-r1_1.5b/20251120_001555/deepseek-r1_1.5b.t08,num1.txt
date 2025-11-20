@@ -1,0 +1,16 @@
+To find the sum of \(2 + 2\), follow these easy steps:
+
+1. **Identify the Numbers:**
+   \[
+   2 \quad \text{and} \quad 2
+   \]
+
+2. **Addition Operation:**
+   \[
+   2 + 2 = 4
+   \]
+
+3. **Conclusion:**
+   \[
+   \boxed{4}
+   \]

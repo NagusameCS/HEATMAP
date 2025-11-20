@@ -1,0 +1,16 @@
+To find the square root of **144**, we need to determine a number that, when multiplied by itself, equals **144**.
+
+Let's break it down step by step:
+
+1. **Check for obvious factors:**
+   - We know that \(12 \times 12 = 144\).  
+   
+2. **Verify the multiplication:**
+   - Calculate \(12 \times 10 = 120\) and \(12 \times 2 = 24\).
+   - Add the results together: \(120 + 24 = 144\).
+
+Since \(12 \times 12 = 144\), we can conclude that:
+
+\[
+\boxed{12}
+\]

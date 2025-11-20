@@ -1,0 +1,21 @@
+**Solution:**
+
+We are asked to find the value of \(2 + 2\).
+
+1. **Write down the numbers to be added:**
+   
+   \[
+   2 + 2
+   \]
+
+2. **Addition operation:**
+
+   \[
+   2 + 2 = 4
+   \]
+
+**Final Answer:**
+
+\[
+\boxed{4}
+\]

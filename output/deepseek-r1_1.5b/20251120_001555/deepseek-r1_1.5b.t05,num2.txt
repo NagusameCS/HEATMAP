@@ -1,0 +1,29 @@
+**Solution:**
+
+We need to calculate \(15 \times 24\).
+
+Let's break it down step by step:
+
+1. **Multiply 10 by 24:**
+   
+   \[
+   10 \times 24 = 240
+   \]
+
+2. **Multiply 5 by 24:**
+   
+   \[
+   5 \times 24 = 120
+   \]
+
+3. **Add the two results together:**
+   
+   \[
+   240 + 120 = 360
+   \]
+
+**Final Answer:**
+
+\[
+\boxed{360}
+\]

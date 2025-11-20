@@ -1,0 +1,26 @@
+Sure! Let's solve the problem step by step.
+
+**Problem:**  
+What is \( 2 + 2 \)?
+
+**Solution:**
+
+1. **Start with the numbers given:**
+   
+   \[
+   2 + 2
+   \]
+
+2. **Add the two numbers together:**
+   
+   \[
+   2 + 2 = 4
+   \]
+
+3. **Final Answer:**
+   
+   \[
+   \boxed{4}
+   \]
+
+So, \( 2 + 2 \) equals \(\boxed{4}\).

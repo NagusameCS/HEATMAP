@@ -1,0 +1,27 @@
+Certainly! Let's break down the multiplication step by step:
+
+\[
+\boxed{15 \times 24}
+\]
+
+**Step 1:** Multiply each digit of 24 by 15.
+
+1. **Multiply the units digit (4) by both digits in 15:**
+   - \(4 \times 5 = 20\)
+   - \(4 \times 1 = 4\)
+
+2. **Add a zero to the result because of the tens place:**
+   - \(20 \times 10 = 200\)
+   - \(4 \times 10 = 40\)
+
+**Step 2:** Add the two partial products together:
+   
+\[
+200 + 40 = 240
+\]
+
+So, 
+
+\[
+\boxed{15 \times 24 = 360}
+\]

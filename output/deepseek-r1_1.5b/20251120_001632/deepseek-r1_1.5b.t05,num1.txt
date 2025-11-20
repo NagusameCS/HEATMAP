@@ -1,0 +1,16 @@
+Certainly! Let's solve the problem step by step:
+
+**Problem:**  
+What is \( 2 + 2 \)?
+
+**Solution:**  
+
+1. Start with the number **2**.
+2. Add another **2** to it.
+
+\[
+2 + 2 = 4
+\]
+
+**Final Answer:**  
+\( 2 + 2 = \boxed{4} \)

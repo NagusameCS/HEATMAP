@@ -1,0 +1,40 @@
+Certainly! Let's break down the multiplication step-by-step:
+
+**Problem:**  
+Calculate \(15 \times 24\).
+
+---
+
+### Step 1: Break Down the Numbers
+We can simplify the calculation by breaking down one of the numbers into smaller, more manageable parts. 
+
+Let's split 24 into two parts:
+\[
+24 = 20 + 4
+\]
+
+**Step 2: Multiply Each Part**
+Now, multiply each part by 15.
+
+1. **Multiply \(20 \times 15\):**
+   \[
+   20 \times 15 = 300
+   \]
+   
+2. **Multiply \(4 \times 15\):**
+   \[
+   4 \times 15 = 60
+   \]
+
+---
+
+### Step 3: Add the Results
+Finally, add the two products together:
+\[
+300 + 60 = 360
+\]
+
+**Answer:**  
+\[
+\boxed{360}
+\]

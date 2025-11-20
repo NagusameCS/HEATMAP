@@ -1,0 +1,25 @@
+Sure! Let's break down the addition step by step:
+
+\[
+2 + 2 = \boxed{4}
+\]
+
+**Step-by-Step Explanation:**
+
+1. **Identify the Numbers:** We have the numbers **2** and **2**.
+   
+2. **Addition Operation:** Place the two numbers side by side to add them:
+   \[
+   2 + 2
+   \]
+   
+3. **Calculate the Sum:** 
+   \[
+   2 + 2 = 4
+   \]
+
+So, the final answer is:
+
+\[
+\boxed{4}
+\]

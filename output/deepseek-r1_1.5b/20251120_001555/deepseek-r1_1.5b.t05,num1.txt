@@ -1,0 +1,19 @@
+Certainly! Let's solve the arithmetic problem step by step:
+
+\[
+2 + 2
+\]
+
+**Step 1:** Start with the first number, which is **2**.
+
+**Step 2:** Add the second number, also **2**, to the first number.
+
+\[
+2 + 2 = 4
+\]
+
+**Final Answer:**
+
+\[
+\boxed{4}
+\]

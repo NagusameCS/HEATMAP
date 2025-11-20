@@ -1,0 +1,12 @@
+To find the sum of 2 and 2, follow these easy steps:
+
+1. **Identify the addends:**  
+   The numbers you are adding are both **2**.
+
+2. **Add the addends together:**  
+   \[
+   2 + 2 = 4
+   \]
+
+3. **Conclusion:**  
+   The result of \( 2 + 2 \) is **\(\boxed{4}\)**.

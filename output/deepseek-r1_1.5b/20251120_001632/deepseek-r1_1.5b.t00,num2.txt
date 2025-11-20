@@ -1,0 +1,28 @@
+To calculate \(15 \times 24\), follow these steps:
+
+### Step 1: Break Down the Multiplication
+We'll use the **Distributive Property** to simplify the multiplication:
+\[
+15 \times 24 = 15 \times (20 + 4) = (15 \times 20) + (15 \times 4)
+\]
+
+### Step 2: Perform the Multiplications
+- **First Part:** \(15 \times 20\)
+  \[
+  15 \times 20 = 300
+  \]
+  
+- **Second Part:** \(15 \times 4\)
+  \[
+  15 \times 4 = 60
+  \]
+
+### Step 3: Add the Results Together
+\[
+300 + 60 = 360
+\]
+
+### Final Answer
+\[
+\boxed{360}
+\]

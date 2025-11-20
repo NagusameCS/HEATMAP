@@ -1,0 +1,16 @@
+**Solution:**
+
+To calculate \(2 + 2\), follow these simple steps:
+
+1. **Identify the numbers to add:** Both numbers are \(2\).
+
+2. **Perform the addition:** 
+   \[
+   2 + 2 = 4
+   \]
+
+Therefore, the final answer is:
+
+\[
+\boxed{4}
+\]
