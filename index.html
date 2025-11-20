@@ -329,12 +329,45 @@
             margin-bottom: 30px;
             flex-wrap: wrap;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
             background: var(--panel-color);
             padding: 15px 20px;
             border-radius: 16px;
             box-shadow: 8px 8px 0px var(--shadow-color);
             border: 2px solid #000;
+        }
+
+        .search-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            padding: 5px 15px;
+            margin-right: 20px;
+            transition: all 0.2s;
+        }
+
+        .search-wrapper:focus-within {
+            border-color: var(--accent-color);
+            background-color: #f8f8ff;
+        }
+
+        #search-input {
+            border: none;
+            background: transparent;
+            padding: 10px;
+            font-size: 1em;
+            width: 100%;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .controls-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         .icon-btn {
@@ -429,33 +462,37 @@
     <div class="container" style="padding-bottom: 100px;">
         <h1>HEATMAP Releases</h1>
 
-        <div class="search-section">
-            <span class="material-symbols-outlined"
-                style="font-size: 24px; color: #666; padding: 12px 0 12px 15px;">search</span>
-            <input type="text" id="search-input" placeholder="Search releases by version, title, or content..."
-                style="border: none; padding-left: 10px;">
-        </div>
-
         <div class="controls-section">
-            <!-- Sort Toggle -->
-            <button id="btn-sort" class="icon-btn" title="Sort: Newest First">
-                <span class="material-symbols-outlined">arrow_downward</span>
-            </button>
+            <div class="search-wrapper">
+                <span class="material-symbols-outlined" style="color: #666;">search</span>
+                <input type="text" id="search-input" placeholder="Search releases...">
+            </div>
 
-            <div style="width: 1px; height: 30px; background: #eee; margin: 0 10px;"></div>
+            <div class="controls-right">
+                <!-- Sort Toggle -->
+                <button id="btn-sort" class="icon-btn" title="Sort: Newest First">
+                    <span class="material-symbols-outlined">arrow_downward</span>
+                </button>
 
-            <!-- Filters -->
-            <button id="btn-filter-prerelease" class="icon-btn" title="Hide Prereleases">
-                <span class="material-symbols-outlined">science_off</span>
-            </button>
+                <div style="width: 1px; height: 30px; background: #eee; margin: 0 5px;"></div>
 
-            <button id="btn-filter-windows" class="icon-btn" title="Windows Only">
-                <span class="material-symbols-outlined">desktop_windows</span>
-            </button>
+                <!-- Filters -->
+                <button id="btn-filter-prerelease" class="icon-btn" title="Hide Prereleases">
+                    <span class="material-symbols-outlined">science_off</span>
+                </button>
 
-            <button id="btn-filter-mac" class="icon-btn" title="Mac Only">
-                <span class="material-symbols-outlined">laptop_mac</span>
-            </button>
+                <button id="btn-filter-windows" class="icon-btn" title="Windows Only">
+                    <span class="material-symbols-outlined">desktop_windows</span>
+                </button>
+
+                <button id="btn-filter-mac" class="icon-btn" title="Mac Only">
+                    <span class="material-symbols-outlined">laptop_mac</span>
+                </button>
+
+                <button id="btn-filter-universal" class="icon-btn" title="Universal / All Platforms">
+                    <span class="material-symbols-outlined">public</span>
+                </button>
+            </div>
         </div>
 
         <div id="releases-container">
@@ -486,6 +523,7 @@
             let hidePrereleases = false;
             let showWindowsOnly = false;
             let showMacOnly = false;
+            let showUniversal = false;
 
             async function fetchReleases() {
                 const container = document.getElementById('releases-container');
@@ -540,9 +578,11 @@
 
                     const hasWindows = contentStr.includes('windows') || contentStr.includes('.exe') || contentStr.includes('.msi');
                     const hasMac = contentStr.includes('mac') || contentStr.includes('.dmg') || contentStr.includes('.pkg') || contentStr.includes('darwin');
+                    const hasUniversal = contentStr.includes('universal') || contentStr.includes('linux') || contentStr.includes('.tar.gz') || contentStr.includes('ubuntu') || contentStr.includes('debian');
 
                     if (showWindowsOnly && !hasWindows) return false;
                     if (showMacOnly && !hasMac) return false;
+                    if (showUniversal && !hasUniversal) return false;
 
                     return true;
                 });
@@ -570,7 +610,14 @@
                     const releaseDiv = document.createElement('div');
                     releaseDiv.className = 'release';
 
-                    const date = new Date(release.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                    const dateObj = new Date(release.published_at);
+                    const date = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+                    // Calculate days ago
+                    const now = new Date();
+                    const diffTime = Math.abs(now - dateObj);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const daysAgoText = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
 
                     // Parse markdown first
                     const bodyContent = typeof marked !== 'undefined' ? marked.parse(release.body || '') : (release.body || '');
@@ -651,7 +698,9 @@
                             <a href="${release.html_url}" class="tag-name" target="_blank">${release.name || release.tag_name}</a>
                             ${tagsHtml}
                         </div>
-                        <span class="published-at" style="display: flex; align-items: center; gap: 5px;"><span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span> ${date}</span>
+                        <span class="published-at" title="${daysAgoText}" style="display: flex; align-items: center; gap: 5px; cursor: help;">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span> ${date}
+                        </span>
                     </div>
                     <div class="body">${finalBodyContent}</div>
                     ${assetsHtml}
@@ -692,9 +741,10 @@
                 showWindowsOnly = !showWindowsOnly;
                 btn.classList.toggle('active', showWindowsOnly);
 
-                if (showWindowsOnly && showMacOnly) {
-                    // Toggle Mac off
-                    document.getElementById('btn-filter-mac').click();
+                if (showWindowsOnly) {
+                    // Toggle others off
+                    if (showMacOnly) document.getElementById('btn-filter-mac').click();
+                    if (showUniversal) document.getElementById('btn-filter-universal').click();
                 }
                 applyFiltersAndRender();
             });
@@ -704,9 +754,23 @@
                 showMacOnly = !showMacOnly;
                 btn.classList.toggle('active', showMacOnly);
 
-                if (showMacOnly && showWindowsOnly) {
-                    // Toggle Windows off
-                    document.getElementById('btn-filter-windows').click();
+                if (showMacOnly) {
+                    // Toggle others off
+                    if (showWindowsOnly) document.getElementById('btn-filter-windows').click();
+                    if (showUniversal) document.getElementById('btn-filter-universal').click();
+                }
+                applyFiltersAndRender();
+            });
+
+            document.getElementById('btn-filter-universal').addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                showUniversal = !showUniversal;
+                btn.classList.toggle('active', showUniversal);
+
+                if (showUniversal) {
+                    // Toggle others off
+                    if (showWindowsOnly) document.getElementById('btn-filter-windows').click();
+                    if (showMacOnly) document.getElementById('btn-filter-mac').click();
                 }
                 applyFiltersAndRender();
             });
