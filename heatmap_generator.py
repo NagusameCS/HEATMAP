@@ -1242,6 +1242,114 @@ def aggregate_jsons_and_heatmap():
 
     message_dialog(title="Aggregation Complete", text=f"Processed {len(valid_entries)} valid JSONs, {len(invalid_entries)} invalid.\nSuper JSON: {super_path}\nInvalid list: {invalid_path}\nHeatmap CSV: {csv_path}").run()
 
+
+def generate_heatmap_derivative(csv_path=None):
+    """Read `heatmap.csv` and produce `heatmap_derivative.csv` containing d/dx
+    (derivative along the temperature axis) for each model (row).
+
+    Behavior:
+    - Input CSV default: `output/Summaries/heatmap.csv`.
+    - Output CSV: `output/Summaries/heatmap_derivative.csv`.
+    - Uses central differences where possible, forward/backward at endpoints.
+    - Missing cells are preserved as empty in the derivative output.
+    """
+    summaries_dir = os.path.join(OUTPUT_DIR, "Summaries")
+    if csv_path is None:
+        csv_path = os.path.join(summaries_dir, 'heatmap.csv')
+    if not os.path.exists(csv_path):
+        message_dialog(title='Error', text=f'Heatmap CSV not found: {csv_path}').run()
+        return
+
+    out_path = os.path.join(summaries_dir, 'heatmap_derivative.csv')
+
+    # Read input
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+    if not rows:
+        message_dialog(title='Error', text='Input heatmap CSV is empty.').run()
+        return
+
+    header = rows[0]
+    # header[0] expected 'Model' then temp columns
+    temps = []
+    for h in header[1:]:
+        try:
+            temps.append(float(h))
+        except Exception:
+            temps.append(None)
+
+    out_rows = [header]
+
+    for row in rows[1:]:
+        model = row[0]
+        values = []
+        for v in row[1:]:
+            if v is None or v == '':
+                values.append(None)
+            else:
+                try:
+                    values.append(float(v))
+                except Exception:
+                    values.append(None)
+
+        deriv = []
+        n = len(values)
+        for i in range(n):
+            yi = values[i]
+            xi = temps[i]
+            if yi is None or xi is None:
+                deriv.append('')
+                continue
+
+            # find previous available
+            j = i - 1
+            while j >= 0 and (values[j] is None or temps[j] is None):
+                j -= 1
+            # find next available
+            k = i + 1
+            while k < n and (values[k] is None or temps[k] is None):
+                k += 1
+
+            deriv_val = None
+            if j >= 0 and k < n:
+                # central difference using neighbors j and k
+                xj = temps[j]
+                xk = temps[k]
+                yj = values[j]
+                yk = values[k]
+                if xk != xj:
+                    deriv_val = (yk - yj) / (xk - xj)
+            elif k < n:
+                # forward difference
+                xk = temps[k]
+                yk = values[k]
+                if xk != xi:
+                    deriv_val = (yk - yi) / (xk - xi)
+            elif j >= 0:
+                # backward difference
+                xj = temps[j]
+                yj = values[j]
+                if xi != xj:
+                    deriv_val = (yi - yj) / (xi - xj)
+
+            if deriv_val is None:
+                deriv.append('')
+            else:
+                deriv.append(f"{deriv_val:.6f}")
+
+        out_rows.append([model] + deriv)
+
+    # Write output
+    try:
+        with open(out_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            for r in out_rows:
+                writer.writerow(r)
+        message_dialog(title='Derivative Complete', text=f'Wrote derivative CSV: {out_path}').run()
+    except Exception as e:
+        message_dialog(title='Error', text=f'Failed to write derivative CSV: {e}').run()
+
 def shutdown_animation():
     """Plays a TV turn-off animation."""
     play_sound("shutdown")
@@ -1302,6 +1410,7 @@ def main():
             
         menu_items.extend([
             ("aggregate", "Aggregate JSONs & Create Heatmap"),
+            ("heatmap_derivative", "Generate Heatmap Derivative CSV"),
             ("evaluate", "Evaluate Sessions"),
             ("stats", "View Statistics & Health"),
             ("purge", "Purge Old Records"),
@@ -1356,6 +1465,12 @@ def main():
         if action == "aggregate":
             aggregate_jsons_and_heatmap()
             continue
+            if action == "heatmap_derivative":
+                try:
+                    generate_heatmap_derivative()
+                except Exception as e:
+                    message_dialog(title="Error", text=f"Failed to generate derivative CSV: {e}").run()
+                continue
         
         if action == "stats":
             show_stats_ui()
