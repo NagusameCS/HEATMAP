@@ -1083,44 +1083,15 @@
                         }
                         wikiPages.push({ label: label.trim(), page: page.trim() });
                     }
-                }
-
-                // If no pages found from sidebar, try to parse Home.md for links
-                if (wikiPages.length === 0) {
-                    console.log('No sidebar found, attempting to parse Home.md for navigation...');
-                    const homeUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/Home.md`;
-                    const homeResponse = await fetch(homeUrl);
-                    if (homeResponse.ok) {
-                        const homeText = await homeResponse.text();
-                        // Look for links in Home.md that might be navigation
-                        // We'll look for ANY links: [Label](Link)
-                        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-                        let match;
-                        const seenPages = new Set();
-
-                        // Ensure Home is first
-                        wikiPages.push({ label: 'Home', page: 'Home' });
-                        seenPages.add('Home');
-
-                        while ((match = linkRegex.exec(homeText)) !== null) {
-                            const label = match[1];
-                            const page = match[2];
-
-                            // Filter out external links, anchors, and images
-                            if (!page.startsWith('http') && !page.startsWith('#') && !seenPages.has(page)) {
-                                // Basic check to avoid linking to images or other assets
-                                if (!page.match(/\.(png|jpg|jpeg|gif|svg|zip|tar|gz)$/i)) {
-                                    wikiPages.push({ label: label, page: page });
-                                    seenPages.add(page);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Fallback if still no pages found
-                if (wikiPages.length === 0) {
-                    wikiPages.push({ label: 'Home', page: 'Home' });
+                } else {
+                    // Sidebar not found. Use default known pages as requested.
+                    console.log('No sidebar found. Using default page list.');
+                    wikiPages = [
+                        { label: 'Home', page: 'Home' },
+                        { label: 'Page 2', page: 'Page-2' },
+                        { label: 'Page 3', page: 'Page-3' },
+                        { label: 'Page 4', page: 'Page-4' }
+                    ];
                 }
 
                 // Render icons
