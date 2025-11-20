@@ -672,11 +672,22 @@
                 "0.5": "deepseek-r1_1.5b.t05,num12.txt",
                 "0.6": "deepseek-r1_1.5b.t06,num12.txt",
                 "0.7": "deepseek-r1_1.5b.t07,num12.txt",
-                "0.8": "deepseek-r1_1.5b.t08,num12.txt"
+                "0.8": "deepseek-r1_1.5b.t08,num12.txt",
+                "0.9": "deepseek-r1_1.5b.t09,num12.txt",
+                "1.0": "deepseek-r1_1.5b.t10,num12.txt"
             }
         },
         "13": {
-            "deepseek-r1:1.5b": {}
+            "deepseek-r1:1.5b": {
+                "0.0": "deepseek-r1_1.5b.t00,num13.txt",
+                "0.1": "deepseek-r1_1.5b.t01,num13.txt",
+                "0.2": "deepseek-r1_1.5b.t02,num13.txt",
+                "0.3": "deepseek-r1_1.5b.t03,num13.txt",
+                "0.4": "deepseek-r1_1.5b.t04,num13.txt",
+                "0.5": "deepseek-r1_1.5b.t05,num13.txt",
+                "0.6": "deepseek-r1_1.5b.t06,num13.txt",
+                "0.7": "deepseek-r1_1.5b.t07,num13.txt"
+            }
         },
         "14": {
             "deepseek-r1:1.5b": {}

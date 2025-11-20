@@ -1408,6 +1408,59 @@ def show_stats_ui():
         text=report
     ).run()
 
+def generate_heatmaps(heatmap_data, selected_models_names, session_id):
+    """Generates CSV heatmaps from the collected data."""
+    if not heatmap_data:
+        return
+
+    # Create Summaries Directory
+    summary_dir = os.path.join(OUTPUT_DIR, "Summaries")
+    os.makedirs(summary_dir, exist_ok=True)
+    
+    # 1. Main Heatmap (Links to files)
+    csv_filename = f"heatmap_{session_id}.csv"
+    csv_path = os.path.join(summary_dir, csv_filename)
+    
+    try:
+        with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            # Header: ID, Model1_T0.0, Model1_T0.1, ..., Model2_T0.0, ...
+            header = ["ID"]
+            for model in selected_models_names:
+                for temp in TEMPERATURES:
+                    header.append(f"{model}_T{temp}")
+            writer.writerow(header)
+            
+            # Rows
+            for q_id, models_data in heatmap_data.items():
+                row = [q_id]
+                for model in selected_models_names:
+                    for temp in TEMPERATURES:
+                        # Check float or string key
+                        val = "MISSING"
+                        if model in models_data:
+                            if temp in models_data[model]:
+                                val = models_data[model][temp]
+                            elif str(temp) in models_data[model]:
+                                val = models_data[model][str(temp)]
+                        
+                        # If it's a filename, make it a relative link or just filename
+                        # For CSV readability, just filename is fine.
+                        row.append(val)
+                writer.writerow(row)
+                
+        console.print(f"[green]Heatmap CSV generated: {csv_path}[/green]")
+        
+        # Open folder
+        if os.name == 'nt':
+            os.startfile(summary_dir)
+        elif os.name == 'posix':
+            subprocess.call(['open', summary_dir])
+
+    except Exception as e:
+        console.print(f"[red]Error generating heatmap CSV: {e}[/red]")
+
 if __name__ == "__main__":
     print("Starting Heatmap Data Gatherer...")
     try:
