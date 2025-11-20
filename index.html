@@ -22,7 +22,8 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 0;
+            padding-left: 80px;
+            padding-right: 80px;
             min-height: 100vh;
             display: flex;
             flex-direction: row;
@@ -102,14 +103,11 @@
 
         .container {
             flex-grow: 1;
-            margin-left: 160px;
-            /* Increased offset for sidebar */
-            width: calc(100% - 160px);
             max-width: 1100px;
             padding: 40px 60px;
             /* Increased padding */
             box-sizing: border-box;
-            margin-right: auto;
+            margin: 0 auto;
         }
 
         /* Wiki Container */
@@ -1087,7 +1085,27 @@
                     }
                 }
 
-                // Fallback if no pages found
+                // If no pages found from sidebar, try to parse Home.md for links
+                if (wikiPages.length === 0) {
+                    console.log('No sidebar found, attempting to parse Home.md for navigation...');
+                    const homeUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/Home.md`;
+                    const homeResponse = await fetch(homeUrl);
+                    if (homeResponse.ok) {
+                        const homeText = await homeResponse.text();
+                        // Look for links in Home.md that might be navigation
+                        // We'll look for list items with links: - [Label](Link)
+                        const listLinkRegex = /[-*]\s+\[([^\]]+)\]\(([^)]+)\)/g;
+                        let match;
+                        while ((match = listLinkRegex.exec(homeText)) !== null) {
+                            // Filter out external links
+                            if (!match[2].startsWith('http')) {
+                                wikiPages.push({ label: match[1], page: match[2] });
+                            }
+                        }
+                    }
+                }
+
+                // Fallback if still no pages found
                 if (wikiPages.length === 0) {
                     wikiPages.push({ label: 'Home', page: 'Home' });
                 }
@@ -1098,7 +1116,7 @@
                 });
 
             } catch (e) {
-                console.log('No sidebar found or error fetching it', e);
+                console.log('Error fetching wiki navigation:', e);
                 wikiNavContainer.innerHTML = '';
                 wikiPages = [{ label: 'Home', page: 'Home' }];
                 createWikiSidebarIcon('Home', 'Home');
