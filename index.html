@@ -329,60 +329,69 @@
             margin-bottom: 30px;
             flex-wrap: wrap;
             align-items: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            justify-content: flex-end;
+            background: var(--panel-color);
+            padding: 15px 20px;
+            border-radius: 16px;
+            box-shadow: 8px 8px 0px var(--shadow-color);
+            border: 2px solid #000;
         }
 
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            font-weight: 600;
-        }
-
-        select {
-            padding: 8px 12px;
-            border-radius: 6px;
+        .icon-btn {
+            background: white;
             border: 2px solid #eee;
-            background: white;
-            font-family: inherit;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .checkbox-wrapper {
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
             cursor: pointer;
-            background: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: #333;
             transition: all 0.2s;
-            border: 2px solid transparent;
+            color: #666;
+            position: relative;
         }
 
-        .checkbox-wrapper:hover {
-            background: #f0f0f0;
+        .icon-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
         }
 
-        .checkbox-wrapper.active {
-            background: #e8e8ff;
-            border-color: #4444FE;
-            color: #4444FE;
+        .icon-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            box-shadow: 4px 4px 0px var(--shadow-color);
         }
 
-        .checkbox-wrapper input {
-            display: none;
+        .icon-btn.active:hover {
+            color: white;
+        }
+
+        /* Tooltip */
+        .icon-btn::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon-btn:hover::after {
+            opacity: 1;
         }
 
         /* No Releases Found Styling */
@@ -428,188 +437,183 @@
         </div>
 
         <div class="controls-section">
-            <div class="control-group">
-                <span class="material-symbols-outlined" style="font-size: 20px;">sort</span>
-                <select id="sort-select">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                </select>
-            </div>
+            <!-- Sort Toggle -->
+            <button id="btn-sort" class="icon-btn" title="Sort: Newest First">
+                <span class="material-symbols-outlined">arrow_downward</span>
+            </button>
 
-            <div class="control-group">
-                <span class="material-symbols-outlined" style="font-size: 20px;">filter_alt</span>
+            <div style="width: 1px; height: 30px; background: #eee; margin: 0 10px;"></div>
 
-                <label class="checkbox-wrapper" id="filter-prerelease-label">
-                    <input type="checkbox" id="filter-prerelease">
-                    <span>Hide Prereleases</span>
-                </label>
+            <!-- Filters -->
+            <button id="btn-filter-prerelease" class="icon-btn" title="Hide Prereleases">
+                <span class="material-symbols-outlined">science_off</span>
+            </button>
 
-                <label class="checkbox-wrapper" id="filter-windows-label">
-                    <input type="checkbox" id="filter-windows">
-                    <span>Windows Only</span>
-                </label>
+            <button id="btn-filter-windows" class="icon-btn" title="Windows Only">
+                <span class="material-symbols-outlined">desktop_windows</span>
+            </button>
 
-                <label class="checkbox-wrapper" id="filter-mac-label">
-                    <input type="checkbox" id="filter-mac">
-                    <span>Mac Only</span>
-                </label>
-            </div>
+            <button id="btn-filter-mac" class="icon-btn" title="Mac Only">
+                <span class="material-symbols-outlined">laptop_mac</span>
+            </button>
         </div>
 
         <div id="releases-container">
-            <p class="loading">Loading releases...</p>
+
+            <div id="releases-container">
+                <p class="loading">Loading releases...</p>
+            </div>
         </div>
-    </div>
 
-    <footer>
-        <p>&copy; 2025 HEATMAP. All rights reserved.</p>
-    </footer>
+        <footer>
+            <p>&copy; 2025 HEATMAP. All rights reserved.</p>
+        </footer>
 
-    <a href="https://github.com/NagusameCS/HEATMAP" class="animation-widget" target="_blank" title="View on GitHub">
-        <img src="Frame1.png" alt="GitHub Repo" class="frame-1">
-        <img src="Frame2.png" alt="GitHub Repo" class="frame-2">
-    </a>
+        <a href="https://github.com/NagusameCS/HEATMAP" class="animation-widget" target="_blank" title="View on GitHub">
+            <img src="Frame1.png" alt="GitHub Repo" class="frame-1">
+            <img src="Frame2.png" alt="GitHub Repo" class="frame-2">
+        </a>
 
-    <script>
-        const repoOwner = 'NagusameCS';
-        const repoName = 'HEATMAP';
-        const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases`;
+        <script>
+            const repoOwner = 'NagusameCS';
+            const repoName = 'HEATMAP';
+            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/releases`;
 
-        let allReleases = [];
+            let allReleases = [];
 
-        // State for filters
-        let currentSort = 'newest';
-        let hidePrereleases = false;
-        let showWindowsOnly = false;
-        let showMacOnly = false;
+            // State for filters
+            let currentSort = 'newest';
+            let hidePrereleases = false;
+            let showWindowsOnly = false;
+            let showMacOnly = false;
 
-        async function fetchReleases() {
-            const container = document.getElementById('releases-container');
-            try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) {
-                    throw new Error(`GitHub API returned ${response.status}: ${response.statusText}`);
+            async function fetchReleases() {
+                const container = document.getElementById('releases-container');
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error(`GitHub API returned ${response.status}: ${response.statusText}`);
+                    }
+                    allReleases = await response.json();
+
+                    if (allReleases.length === 0) {
+                        renderNoReleases('No releases found in this repository.');
+                        return;
+                    }
+
+                    applyFiltersAndRender();
+                } catch (error) {
+                    container.innerHTML = `<div class="error"><h3>Error loading releases</h3><p>${error.message}</p></div>`;
+                    console.error(error);
                 }
-                allReleases = await response.json();
-
-                if (allReleases.length === 0) {
-                    renderNoReleases('No releases found in this repository.');
-                    return;
-                }
-
-                applyFiltersAndRender();
-            } catch (error) {
-                container.innerHTML = `<div class="error"><h3>Error loading releases</h3><p>${error.message}</p></div>`;
-                console.error(error);
             }
-        }
 
-        function renderNoReleases(message) {
-            const container = document.getElementById('releases-container');
-            container.innerHTML = `
+            function renderNoReleases(message) {
+                const container = document.getElementById('releases-container');
+                container.innerHTML = `
                 <div class="no-releases">
                     <span class="material-symbols-outlined">sentiment_dissatisfied</span>
                     <h3>No Releases Found</h3>
                     <p>${message}</p>
                 </div>
             `;
-        }
-
-        function applyFiltersAndRender() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
-
-            let filtered = allReleases.filter(release => {
-                // Search Filter
-                const name = (release.name || '').toLowerCase();
-                const tagName = (release.tag_name || '').toLowerCase();
-                const body = (release.body || '').toLowerCase();
-                const matchesSearch = name.includes(searchTerm) || tagName.includes(searchTerm) || body.includes(searchTerm);
-                if (!matchesSearch) return false;
-
-                // Prerelease Filter
-                if (hidePrereleases && release.prerelease) return false;
-
-                // Platform Filters
-                // Check assets and body for keywords
-                const assetsStr = JSON.stringify(release.assets || []).toLowerCase();
-                const contentStr = (name + body + assetsStr).toLowerCase();
-
-                const hasWindows = contentStr.includes('windows') || contentStr.includes('.exe') || contentStr.includes('.msi');
-                const hasMac = contentStr.includes('mac') || contentStr.includes('.dmg') || contentStr.includes('.pkg') || contentStr.includes('darwin');
-
-                if (showWindowsOnly && !hasWindows) return false;
-                if (showMacOnly && !hasMac) return false;
-
-                return true;
-            });
-
-            // Sort
-            filtered.sort((a, b) => {
-                const dateA = new Date(a.published_at);
-                const dateB = new Date(b.published_at);
-                return currentSort === 'newest' ? dateB - dateA : dateA - dateB;
-            });
-
-            renderReleases(filtered);
-        }
-
-        function renderReleases(releases) {
-            const container = document.getElementById('releases-container');
-            container.innerHTML = '';
-
-            if (releases.length === 0) {
-                renderNoReleases('Try adjusting your search or filters.');
-                return;
             }
 
-            releases.forEach(release => {
-                const releaseDiv = document.createElement('div');
-                releaseDiv.className = 'release';
+            function applyFiltersAndRender() {
+                const searchTerm = document.getElementById('search-input').value.toLowerCase();
 
-                const date = new Date(release.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                let filtered = allReleases.filter(release => {
+                    // Search Filter
+                    const name = (release.name || '').toLowerCase();
+                    const tagName = (release.tag_name || '').toLowerCase();
+                    const body = (release.body || '').toLowerCase();
+                    const matchesSearch = name.includes(searchTerm) || tagName.includes(searchTerm) || body.includes(searchTerm);
+                    if (!matchesSearch) return false;
 
-                // Parse markdown first
-                const bodyContent = typeof marked !== 'undefined' ? marked.parse(release.body || '') : (release.body || '');
+                    // Prerelease Filter
+                    if (hidePrereleases && release.prerelease) return false;
 
-                // Extract extra download links from body
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = bodyContent;
-                const links = tempDiv.querySelectorAll('a');
-                const extraAssets = [];
+                    // Platform Filters
+                    // Check assets and body for keywords
+                    const assetsStr = JSON.stringify(release.assets || []).toLowerCase();
+                    const contentStr = (name + body + assetsStr).toLowerCase();
 
-                links.forEach(link => {
-                    const href = link.getAttribute('href');
-                    const text = link.textContent.trim();
-                    // Heuristic for "download link"
-                    const isDownload = /\.(zip|rar|7z|tar|gz|tgz|exe|msi|dmg|pkg|deb|rpm|apk|jar|iso|bin)$/i.test(href) ||
-                        /download/i.test(text) ||
-                        /download/i.test(link.title);
+                    const hasWindows = contentStr.includes('windows') || contentStr.includes('.exe') || contentStr.includes('.msi');
+                    const hasMac = contentStr.includes('mac') || contentStr.includes('.dmg') || contentStr.includes('.pkg') || contentStr.includes('darwin');
 
-                    if (isDownload && href) {
-                        extraAssets.push({
-                            browser_download_url: href,
-                            name: text || href.split('/').pop(),
-                            size: null,
-                            isExternal: true
-                        });
-                        // Remove the link from the body content
-                        link.remove();
-                    }
+                    if (showWindowsOnly && !hasWindows) return false;
+                    if (showMacOnly && !hasMac) return false;
+
+                    return true;
                 });
 
-                // Update body content with links removed
-                const finalBodyContent = tempDiv.innerHTML;
+                // Sort
+                filtered.sort((a, b) => {
+                    const dateA = new Date(a.published_at);
+                    const dateB = new Date(b.published_at);
+                    return currentSort === 'newest' ? dateB - dateA : dateA - dateB;
+                });
 
-                const allAssets = [...(release.assets || []), ...extraAssets];
+                renderReleases(filtered);
+            }
 
-                let assetsHtml = '';
-                if (allAssets.length > 0) {
-                    assetsHtml = '<div class="assets-section"><span class="assets-title">Downloads</span><ul class="assets">';
-                    allAssets.forEach(asset => {
-                        const sizeDisplay = asset.size ? (asset.size / 1024 / 1024).toFixed(2) + ' MB' : 'External';
-                        const icon = asset.isExternal ? 'link' : 'package_2';
-                        const target = asset.isExternal ? 'target="_blank"' : '';
-                        assetsHtml += `
+            function renderReleases(releases) {
+                const container = document.getElementById('releases-container');
+                container.innerHTML = '';
+
+                if (releases.length === 0) {
+                    renderNoReleases('Try adjusting your search or filters.');
+                    return;
+                }
+
+                releases.forEach(release => {
+                    const releaseDiv = document.createElement('div');
+                    releaseDiv.className = 'release';
+
+                    const date = new Date(release.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+                    // Parse markdown first
+                    const bodyContent = typeof marked !== 'undefined' ? marked.parse(release.body || '') : (release.body || '');
+
+                    // Extract extra download links from body
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = bodyContent;
+                    const links = tempDiv.querySelectorAll('a');
+                    const extraAssets = [];
+
+                    links.forEach(link => {
+                        const href = link.getAttribute('href');
+                        const text = link.textContent.trim();
+                        // Heuristic for "download link"
+                        const isDownload = /\.(zip|rar|7z|tar|gz|tgz|exe|msi|dmg|pkg|deb|rpm|apk|jar|iso|bin)$/i.test(href) ||
+                            /download/i.test(text) ||
+                            /download/i.test(link.title);
+
+                        if (isDownload && href) {
+                            extraAssets.push({
+                                browser_download_url: href,
+                                name: text || href.split('/').pop(),
+                                size: null,
+                                isExternal: true
+                            });
+                            // Remove the link from the body content
+                            link.remove();
+                        }
+                    });
+
+                    // Update body content with links removed
+                    const finalBodyContent = tempDiv.innerHTML;
+
+                    const allAssets = [...(release.assets || []), ...extraAssets];
+
+                    let assetsHtml = '';
+                    if (allAssets.length > 0) {
+                        assetsHtml = '<div class="assets-section"><span class="assets-title">Downloads</span><ul class="assets">';
+                        allAssets.forEach(asset => {
+                            const sizeDisplay = asset.size ? (asset.size / 1024 / 1024).toFixed(2) + ' MB' : 'External';
+                            const icon = asset.isExternal ? 'link' : 'package_2';
+                            const target = asset.isExternal ? 'target="_blank"' : '';
+                            assetsHtml += `
                             <li class="asset">
                                 <a href="${asset.browser_download_url}" ${target}>
                                     <span class="material-symbols-outlined">${icon}</span>
@@ -617,13 +621,13 @@
                                     <span class="asset-size">${sizeDisplay}</span>
                                 </a> 
                             </li>`;
-                    });
-                    assetsHtml += '</ul></div>';
-                } else {
-                    assetsHtml = '<div class="assets-section"><p>No binary assets available for this release.</p></div>';
-                }
+                        });
+                        assetsHtml += '</ul></div>';
+                    } else {
+                        assetsHtml = '<div class="assets-section"><p>No binary assets available for this release.</p></div>';
+                    }
 
-                const sourceHtml = `
+                    const sourceHtml = `
                     <div class="assets-section">
                         <span class="assets-title">Source Code</span>
                         <ul class="assets">
@@ -633,15 +637,15 @@
                     </div>
                 `;
 
-                // Tags
-                let tagsHtml = '';
-                if (release.prerelease) {
-                    tagsHtml += '<span style="background:#e3b341; color:black; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Pre-release</span>';
-                } else {
-                    tagsHtml += '<span style="background:#2cbe4e; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Latest</span>';
-                }
+                    // Tags
+                    let tagsHtml = '';
+                    if (release.prerelease) {
+                        tagsHtml += '<span style="background:#e3b341; color:black; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Pre-release</span>';
+                    } else {
+                        tagsHtml += '<span style="background:#2cbe4e; color:white; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-left:10px;">Latest</span>';
+                    }
 
-                releaseDiv.innerHTML = `
+                    releaseDiv.innerHTML = `
                     <div class="release-header">
                         <div style="display:flex; align-items:center;">
                             <a href="${release.html_url}" class="tag-name" target="_blank">${release.name || release.tag_name}</a>
@@ -653,50 +657,67 @@
                     ${assetsHtml}
                     ${sourceHtml}
                 `;
-                container.appendChild(releaseDiv);
+                    container.appendChild(releaseDiv);
+                });
+            }
+
+            // Event Listeners
+            document.getElementById('search-input').addEventListener('input', applyFiltersAndRender);
+
+            document.getElementById('btn-sort').addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                const icon = btn.querySelector('.material-symbols-outlined');
+
+                if (currentSort === 'newest') {
+                    currentSort = 'oldest';
+                    icon.textContent = 'arrow_upward';
+                    btn.title = 'Sort: Oldest First';
+                } else {
+                    currentSort = 'newest';
+                    icon.textContent = 'arrow_downward';
+                    btn.title = 'Sort: Newest First';
+                }
+                applyFiltersAndRender();
             });
-        }
 
-        // Event Listeners
-        document.getElementById('search-input').addEventListener('input', applyFiltersAndRender);
+            document.getElementById('btn-filter-prerelease').addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                hidePrereleases = !hidePrereleases;
+                btn.classList.toggle('active', hidePrereleases);
+                applyFiltersAndRender();
+            });
 
-        document.getElementById('sort-select').addEventListener('change', (e) => {
-            currentSort = e.target.value;
-            applyFiltersAndRender();
-        });
+            document.getElementById('btn-filter-windows').addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                showWindowsOnly = !showWindowsOnly;
+                btn.classList.toggle('active', showWindowsOnly);
 
-        document.getElementById('filter-prerelease').addEventListener('change', (e) => {
-            hidePrereleases = e.target.checked;
-            document.getElementById('filter-prerelease-label').classList.toggle('active', hidePrereleases);
-            applyFiltersAndRender();
-        });
+                if (showWindowsOnly && showMacOnly) {
+                    // Toggle Mac off
+                    document.getElementById('btn-filter-mac').click();
+                }
+                applyFiltersAndRender();
+            });
 
-        document.getElementById('filter-windows').addEventListener('change', (e) => {
-            showWindowsOnly = e.target.checked;
-            document.getElementById('filter-windows-label').classList.toggle('active', showWindowsOnly);
-            // Uncheck Mac if Windows is checked (optional, but good for exclusive filtering if desired, though here we allow both)
-            if (showWindowsOnly && showMacOnly) {
-                document.getElementById('filter-mac').click();
-            }
-            applyFiltersAndRender();
-        });
+            document.getElementById('btn-filter-mac').addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                showMacOnly = !showMacOnly;
+                btn.classList.toggle('active', showMacOnly);
 
-        document.getElementById('filter-mac').addEventListener('change', (e) => {
-            showMacOnly = e.target.checked;
-            document.getElementById('filter-mac-label').classList.toggle('active', showMacOnly);
-            if (showMacOnly && showWindowsOnly) {
-                document.getElementById('filter-windows').click();
-            }
-            applyFiltersAndRender();
-        });
+                if (showMacOnly && showWindowsOnly) {
+                    // Toggle Windows off
+                    document.getElementById('btn-filter-windows').click();
+                }
+                applyFiltersAndRender();
+            });
 
-        // Load marked.js for markdown rendering
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-        script.onload = fetchReleases;
-        script.onerror = fetchReleases; // Try to load anyway even if marked fails
-        document.head.appendChild(script);
-    </script>
+            // Load marked.js for markdown rendering
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+            script.onload = fetchReleases;
+            script.onerror = fetchReleases; // Try to load anyway even if marked fails
+            document.head.appendChild(script);
+        </script>
 </body>
 
 </html>
