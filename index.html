@@ -1093,13 +1093,26 @@
                     if (homeResponse.ok) {
                         const homeText = await homeResponse.text();
                         // Look for links in Home.md that might be navigation
-                        // We'll look for list items with links: - [Label](Link)
-                        const listLinkRegex = /[-*]\s+\[([^\]]+)\]\(([^)]+)\)/g;
+                        // We'll look for ANY links: [Label](Link)
+                        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
                         let match;
-                        while ((match = listLinkRegex.exec(homeText)) !== null) {
-                            // Filter out external links
-                            if (!match[2].startsWith('http')) {
-                                wikiPages.push({ label: match[1], page: match[2] });
+                        const seenPages = new Set();
+
+                        // Ensure Home is first
+                        wikiPages.push({ label: 'Home', page: 'Home' });
+                        seenPages.add('Home');
+
+                        while ((match = linkRegex.exec(homeText)) !== null) {
+                            const label = match[1];
+                            const page = match[2];
+
+                            // Filter out external links, anchors, and images
+                            if (!page.startsWith('http') && !page.startsWith('#') && !seenPages.has(page)) {
+                                // Basic check to avoid linking to images or other assets
+                                if (!page.match(/\.(png|jpg|jpeg|gif|svg|zip|tar|gz)$/i)) {
+                                    wikiPages.push({ label: label, page: page });
+                                    seenPages.add(page);
+                                }
                             }
                         }
                     }
@@ -1245,70 +1258,7 @@
                 observer.observe(footer);
             }
         }
-
-        function createWikiSidebarIcon(label, page) {
-            const div = document.createElement('div');
-            div.className = 'sidebar-icon';
-            div.title = label;
-
-            // Pick an icon based on label
-            let iconName = 'article';
-            const l = label.toLowerCase();
-            if (l.includes('home')) iconName = 'home';
-            else if (l.includes('install')) iconName = 'download';
-            else if (l.includes('config')) iconName = 'settings';
-            else if (l.includes('usage')) iconName = 'terminal';
-            else if (l.includes('faq')) iconName = 'help';
-            else if (l.includes('changelog')) iconName = 'history';
-
-            div.innerHTML = `<span class="material-symbols-outlined" style="font-size: 24px;">${iconName}</span>`;
-
-            div.onclick = () => {
-                // Remove active class from all wiki icons
-                document.querySelectorAll('#wiki-nav-container .sidebar-icon').forEach(el => el.classList.remove('active'));
-                div.classList.add('active');
-                fetchWikiPage(page);
-            };
-
-            wikiNavContainer.appendChild(div);
-        }
-
-        async function fetchWikiPage(pageName) {
-            wikiContent.innerHTML = '<p class="loading">Loading...</p>';
-            try {
-                const wikiUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/${pageName}.md`;
-                const response = await fetch(wikiUrl);
-
-                if (!response.ok) {
-                    throw new Error(`Page '${pageName}' not found.`);
-                }
-
-                const text = await response.text();
-                const html = typeof marked !== 'undefined' ? marked.parse(text) : text;
-
-                wikiContent.innerHTML = html;
-
-                // Fix relative links
-                const links = wikiContent.querySelectorAll('a');
-                links.forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (href && !href.startsWith('http') && !href.startsWith('#')) {
-                        link.onclick = (e) => {
-                            e.preventDefault();
-                            fetchWikiPage(href);
-                        };
-                    }
-                });
-
-            } catch (error) {
-                wikiContent.innerHTML = `
-                        <div class="error">
-                            <h3>Could not load page: ${pageName}</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
-            }
-        }        // Load marked.js for markdown rendering
+        // Load marked.js for markdown rendering
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
         script.onload = fetchReleases;
