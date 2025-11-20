@@ -565,7 +565,7 @@ def create_layout(progress_renderable, output_renderable):
     
     return layout
 
-def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
+def run_benchmark_session(selected_models_names, prompts, crunch_mode=False, resume_state=None):
     """
     Runs the benchmark session. 
     If crunch_mode is True, runs in parallel.
@@ -573,7 +573,7 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
     """
     
     # RAM Check for Crunch Mode
-    if crunch_mode:
+    if crunch_mode and not resume_state:
         all_models_data = get_available_models_full()
         total_size_bytes = 0
         for m in all_models_data:
@@ -595,14 +595,29 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
             if not cont: return
 
     # Session Setup
-    session_id = get_session_id()
-    create_session_directories(selected_models_names, session_id)
-    
-    heatmap_data = {} 
-    for p in prompts:
-        heatmap_data[p['id']] = {}
-        for m in selected_models_names:
-            heatmap_data[p['id']][m] = {}
+    if resume_state:
+        session_id = resume_state['session_id']
+        heatmap_data = resume_state['heatmap_data']
+        # Ensure directories exist (in case they were deleted manually)
+        create_session_directories(selected_models_names, session_id)
+    else:
+        session_id = get_session_id()
+        create_session_directories(selected_models_names, session_id)
+        heatmap_data = {} 
+        for p in prompts:
+            heatmap_data[p['id']] = {}
+            for m in selected_models_names:
+                heatmap_data[p['id']][m] = {}
+        
+        # Initial Save
+        save_memory({
+            "type": "benchmark",
+            "session_id": session_id,
+            "models": selected_models_names,
+            "prompts": prompts, # Save prompts in case CSV changes
+            "crunch_mode": crunch_mode,
+            "heatmap_data": heatmap_data
+        })
 
     # Progress Bar
     progress = Progress(
@@ -619,6 +634,15 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
     for model in selected_models_names:
         task_id = progress.add_task(f"[cyan]{model}", total=total_ops_per_model)
         model_tasks[model] = task_id
+        
+        # Fast forward progress if resuming
+        if resume_state:
+            completed_ops = 0
+            for p in prompts:
+                q_id = p['id']
+                if q_id in heatmap_data and model in heatmap_data[q_id]:
+                    completed_ops += len(heatmap_data[q_id][model])
+            progress.update(task_id, completed=completed_ops)
 
     cancel_event = False
     
@@ -639,6 +663,16 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
             for temp in TEMPERATURES:
                 if cancel_event: break
                 
+                # Check if already done
+                is_done = False
+                if q_id in heatmap_data and model_name in heatmap_data[q_id]:
+                    # Check float or string key
+                    if temp in heatmap_data[q_id][model_name] or str(temp) in heatmap_data[q_id][model_name]:
+                        is_done = True
+                
+                if is_done:
+                    continue
+
                 progress.update(task_id, description=f"[cyan]{model_name}[/cyan] (T={temp})")
                 
                 full_response = ""
@@ -668,10 +702,27 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
                     filepath = os.path.join(OUTPUT_DIR, safe_model_name, session_id, filename)
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(full_response)
-                    heatmap_data[q_id][model_name][temp] = filename
+                    
+                    # Update Data
+                    if q_id not in heatmap_data: heatmap_data[q_id] = {}
+                    if model_name not in heatmap_data[q_id]: heatmap_data[q_id][model_name] = {}
+                    heatmap_data[q_id][model_name][temp] = filename # Use float key in memory
+                    
                 else:
+                    if q_id not in heatmap_data: heatmap_data[q_id] = {}
+                    if model_name not in heatmap_data[q_id]: heatmap_data[q_id][model_name] = {}
                     heatmap_data[q_id][model_name][temp] = "ERROR"
                     play_sound("fail")
+                
+                # Save State
+                save_memory({
+                    "type": "benchmark",
+                    "session_id": session_id,
+                    "models": selected_models_names,
+                    "prompts": prompts,
+                    "crunch_mode": crunch_mode,
+                    "heatmap_data": heatmap_data
+                })
                 
                 progress.advance(task_id)
 
@@ -712,7 +763,11 @@ def run_benchmark_session(selected_models_names, prompts, crunch_mode=False):
         console.print(f"[bold red]Critical Error:[/bold red] {e}")
         play_sound("error")
 
-    play_sound("success")
+    if not cancel_event:
+        play_sound("success")
+        clear_memory()
+    else:
+        console.print("[yellow]Session paused/cancelled. Progress saved.[/yellow]")
 
 def purge_records_ui():
     """UI to purge old session records."""
@@ -857,21 +912,32 @@ def main():
     selected_models_names = []
     
     while True:
+        # Check for resume state
+        resume_state = load_memory()
+        
+        menu_items = []
+        if resume_state:
+            menu_items.append(("resume", "Resume Previous Session"))
+            # Lock out new benchmarks if resume is available
+        else:
+            menu_items.append(("benchmark", "Run Benchmark"))
+            
+        menu_items.extend([
+            ("evaluate", "Evaluate Sessions"),
+            ("stats", "View Statistics & Health"),
+            ("purge", "Purge Old Records"),
+            ("inspect", "Browse & Inspect Models"),
+            ("download", "Download New Models"),
+            ("get_more", "Find more models on Ollama.com"),
+            ("github", "Visit GitHub Page"),
+            ("exit", "Shut Down")
+        ])
+
         # UI Style: Default prompt_toolkit style
         action = radiolist_dialog(
             title="Ollama Heatmap Data Gatherer",
             text="Choose an action:",
-            values=[
-                ("benchmark", "Run Benchmark"),
-                ("evaluate", "Evaluate Sessions"),
-                ("stats", "View Statistics & Health"),
-                ("purge", "Purge Old Records"),
-                ("inspect", "Browse & Inspect Models"),
-                ("download", "Download New Models"),
-                ("get_more", "Find more models on Ollama.com"),
-                ("github", "Visit GitHub Page"),
-                ("exit", "Shut Down")
-            ]
+            values=menu_items
         ).run()
 
         if action is None or action == "exit":
@@ -879,13 +945,25 @@ def main():
             shutdown_animation()
             sys.exit(0)
         
+        if action == "resume":
+            if resume_state:
+                r_models = resume_state.get('models', [])
+                r_prompts = resume_state.get('prompts', [])
+                r_crunch = resume_state.get('crunch_mode', False)
+                
+                if not r_models or not r_prompts:
+                    console.print("[red]Corrupt save file. Clearing memory.[/red]")
+                    clear_memory()
+                    continue
+                
+                run_benchmark_session(r_models, r_prompts, crunch_mode=r_crunch, resume_state=resume_state)
+            else:
+                console.print("[red]No save state found.[/red]")
+            continue
+        
         if action == "stats":
             show_stats_ui()
             continue
-        
-        if action == "github":
-            shutdown_animation()
-            sys.exit(0)
         
         if action == "github":
             play_sound("jingle")
