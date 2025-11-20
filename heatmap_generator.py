@@ -711,7 +711,7 @@ def create_layout(progress_renderable, output_renderable):
     # --- Main Dialog Frame ---
     dialog = Panel(
         grid,
-        title="[#081D30]Ollama Heatmap Data Gatherer[/#081D30]",
+        title="[#081D30]HEATMAP Data Gatherer[/#081D30]",
         title_align="center",
         box=box.DOUBLE,
         width=80,
@@ -1401,30 +1401,23 @@ def main():
         # Check for resume state
         resume_state = load_memory()
         
+        # Build a grouped top-level menu: Resume/Benchmark + Tabs
         menu_items = []
         if resume_state:
             menu_items.append(("resume", "Resume Previous Session"))
-            # Lock out new benchmarks if resume is available
         else:
             menu_items.append(("benchmark", "Run Benchmark"))
-            
+
+        # Tabs
         menu_items.extend([
-            ("aggregate", "Aggregate JSONs & Create Heatmap"),
-            ("heatmap_derivative", "Generate Heatmap Derivative CSV"),
-            ("evaluate", "Evaluate Sessions"),
-            ("stats", "View Statistics & Health"),
-            ("purge", "Purge Old Records"),
-            ("open_output", "Open Output Folder"),
-            ("inspect", "Browse & Inspect Models"),
-            ("download", "Download New Models"),
-            ("get_more", "Find more models on Ollama.com"),
-            ("github", "Visit GitHub Page"),
+            ("analysis", "Analysis (Aggregate / Evaluate / Stats)"),
+            ("maintenance", "Maintenance (Purge / Browse / Download)"),
+            ("more", "More (Discover / GitHub)") ,
             ("exit", "Shut Down")
         ])
 
-        # UI Style: Default prompt_toolkit style
         action = radiolist_dialog(
-            title="Ollama Heatmap Data Gatherer",
+            title="HEATMAP MAIN MENU",
             text="Choose an action:",
             values=menu_items
         ).run()
@@ -1433,26 +1426,24 @@ def main():
             if action is None: play_sound("back")
             shutdown_animation()
             sys.exit(0)
-        
+
         if action == "resume":
             if resume_state:
                 r_models = resume_state.get('models', [])
                 r_prompts = resume_state.get('prompts', [])
                 r_crunch = resume_state.get('crunch_mode', False)
-                
+
                 if not r_models or not r_prompts:
                     console.print("[red]Corrupt save file. Clearing memory.[/red]")
                     clear_memory()
                     continue
-                # Show a short intermediary screen to smooth the transition
+                # Short intermediary screen to smooth the transition
                 try:
                     from rich.panel import Panel
                     from rich.spinner import Spinner
-                    # Small transient screen to indicate resume work
                     with Live(Panel(Spinner('dots', text='Resuming session...'), title='Resuming', width=40), console=console, refresh_per_second=12, screen=False):
                         time.sleep(1.0)
                 except Exception:
-                    # Fallback: simple notify sound if rich Live isn't available
                     try:
                         play_sound('notify')
                     except Exception:
@@ -1462,64 +1453,15 @@ def main():
             else:
                 console.print("[red]No save state found.[/red]")
             continue
-        if action == "aggregate":
-            aggregate_jsons_and_heatmap()
-            continue
-            if action == "heatmap_derivative":
-                try:
-                    generate_heatmap_derivative()
-                except Exception as e:
-                    message_dialog(title="Error", text=f"Failed to generate derivative CSV: {e}").run()
-                continue
-        
-        if action == "stats":
-            show_stats_ui()
-            continue
-        
-        if action == "github":
-            play_sound("jingle")
-            webbrowser.open("https://github.com/NagusameCS/Heatmap")
-            continue
-
-        if action == "get_more":
-            play_sound("jingle")
-            webbrowser.open("https://ollama.com/search")
-            continue
-        
-        if action == "inspect":
-            inspect_models_ui(all_models_data)
-            
-        if action == "download":
-            download_model_ui()
-            # Refresh models after download
-            with console.status("[bold green]Refreshing models...[/bold green]", spinner="dots"):
-                all_models_data = get_available_models_full()
-        
-        if action == "purge":
-            purge_records_ui()
-
-        if action == "open_output":
-            # Open the main output directory in the system file browser
-            if not os.path.exists(OUTPUT_DIR):
-                message_dialog(title="Info", text="No output directory found.").run()
-            else:
-                play_sound("notify")
-                open_output_dir(OUTPUT_DIR)
-            continue
-
-        if action == "evaluate":
-            evaluate_sessions_ui(all_models_data)
 
         if action == "benchmark":
             selected_models_names = select_models_ui(all_models_data)
             if selected_models_names:
                 prompts = load_prompts(INPUT_CSV)
                 console.print(f"[blue]Loaded {len(prompts)} prompts.[/blue]")
-                
-                # Ask for Crunch Mode only if multiple models are selected
+
                 crunch_mode = False
                 if len(selected_models_names) > 1:
-                    # UI Style: Default prompt_toolkit style
                     crunch_mode = button_dialog(
                         title="Benchmark Mode",
                         text="Enable Crunch Mode? (Parallel Processing)\n\n"
@@ -1527,10 +1469,90 @@ def main():
                              "Faster, but uses significantly more RAM.",
                         buttons=[("Y/Crunch", True), ("N/Standard", False)]
                     ).run()
-                
+
                 run_benchmark_session(selected_models_names, prompts, crunch_mode=crunch_mode)
             else:
                 play_sound("back")
+            continue
+
+        # Handle Tabs
+        if action == "analysis":
+            analysis_items = [
+                ("aggregate", "Aggregate JSONs & Create Heatmap"),
+                ("heatmap_derivative", "Generate Heatmap Derivative CSV"),
+                ("evaluate", "Evaluate Sessions"),
+                ("stats", "View Statistics & Health"),
+                ("back", "<< Back")
+            ]
+            sub = radiolist_dialog(title="Analysis", text="Choose analysis action:", values=analysis_items).run()
+            if sub is None or sub == "back":
+                play_sound("back")
+                continue
+            if sub == "aggregate":
+                aggregate_jsons_and_heatmap()
+                continue
+            if sub == "heatmap_derivative":
+                try:
+                    generate_heatmap_derivative()
+                except Exception as e:
+                    message_dialog(title="Error", text=f"Failed to generate derivative CSV: {e}").run()
+                continue
+            if sub == "stats":
+                show_stats_ui()
+                continue
+            if sub == "evaluate":
+                evaluate_sessions_ui(all_models_data)
+                continue
+
+        if action == "maintenance":
+            maint_items = [
+                ("purge", "Purge Old Records"),
+                ("open_output", "Open Output Folder"),
+                ("inspect", "Browse & Inspect Models"),
+                ("download", "Download New Models"),
+                ("back", "<< Back")
+            ]
+            sub = radiolist_dialog(title="Maintenance", text="Choose maintenance action:", values=maint_items).run()
+            if sub is None or sub == "back":
+                play_sound("back")
+                continue
+            if sub == "purge":
+                purge_records_ui()
+                continue
+            if sub == "open_output":
+                if not os.path.exists(OUTPUT_DIR):
+                    message_dialog(title="Info", text="No output directory found.").run()
+                else:
+                    play_sound("notify")
+                    open_output_dir(OUTPUT_DIR)
+                continue
+            if sub == "inspect":
+                inspect_models_ui(all_models_data)
+                continue
+            if sub == "download":
+                download_model_ui()
+                with console.status("[bold green]Refreshing models...[/bold green]", spinner="dots"):
+                    all_models_data = get_available_models_full()
+                continue
+
+        if action == "more":
+            more_items = [
+                ("get_more", "Find more models on Ollama.com"),
+                ("github", "Visit GitHub Page"),
+                ("back", "<< Back")
+            ]
+            sub = radiolist_dialog(title="More", text="Choose an action:", values=more_items).run()
+            if sub is None or sub == "back":
+                play_sound("back")
+                continue
+            if sub == "github":
+                play_sound("jingle")
+                webbrowser.open("https://github.com/NagusameCS/Heatmap")
+                continue
+            if sub == "get_more":
+                play_sound("jingle")
+                webbrowser.open("https://ollama.com/search")
+                continue
 
     console.print(Panel.fit("[bold green]All tasks completed successfully![/bold green]", border_style="green"))
 
