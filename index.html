@@ -1089,9 +1089,11 @@
                     console.log('No sidebar found. Using default page list.');
                     wikiPages = [
                         { label: 'Home', page: 'Home' },
-                        { label: 'Page 2', page: 'Page-2' },
-                        { label: 'Page 3', page: 'Page-3' },
-                        { label: 'Page 4', page: 'Page-4' }
+                        { label: 'Navigating the Launcher', page: 'Navigating-the-Launcher' },
+                        { label: 'Understanding The Program', page: 'Understanding-The-Program' },
+                        { label: 'Runing Benchmarks', page: 'Runing-Benchmarks' },
+                        { label: 'Analysis', page: 'Analysis' },
+                        { label: 'Maintenance', page: 'Maintenance' }
                     ];
                 }
 
@@ -1123,6 +1125,11 @@
             else if (l.includes('usage')) iconName = 'terminal';
             else if (l.includes('faq')) iconName = 'help';
             else if (l.includes('changelog')) iconName = 'history';
+            else if (l.includes('navigating') || l.includes('launcher')) iconName = 'flag_circle';
+            else if (l.includes('understanding')) iconName = 'lightbulb';
+            else if (l.includes('benchmark')) iconName = 'speed';
+            else if (l.includes('analysis')) iconName = 'analytics';
+            else if (l.includes('maintenance')) iconName = 'handyman';
 
             div.innerHTML = `<span class="material-symbols-outlined" style="font-size: 24px;">${iconName}</span>`;
 
