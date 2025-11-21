@@ -139,6 +139,7 @@
             line-height: 1.8;
             color: #333;
             font-size: 1.1em;
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
         }
 
         #wiki-content h1 {
@@ -222,6 +223,12 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        .fade-out {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
         }
 
         .release:hover {
@@ -1159,6 +1166,7 @@
                 el.classList.toggle('active', el.dataset.page === pageName);
             });
 
+            wikiContent.classList.remove('fade-out');
             wikiContent.innerHTML = '<p class="loading">Loading...</p>';
             try {
                 const wikiUrl = `https://raw.githubusercontent.com/wiki/${repoOwner}/${repoName}/${pageName}.md`;
@@ -1256,11 +1264,14 @@
                         window.removeEventListener('scroll', currentScrollListener);
                         currentScrollListener = null;
 
-                        // Small delay for visual feedback
+                        // Fade out content
+                        wikiContent.classList.add('fade-out');
+
+                        // Wait for transition before fetching
                         setTimeout(() => {
                             fetchWikiPage(nextPage.page);
                             window.scrollTo(0, 0);
-                        }, 200);
+                        }, 500);
                     }
                 };
 
