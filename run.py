@@ -173,8 +173,8 @@ def main():
         running_pid = check_running_instance()
         status = f'Running PID: {running_pid}' if running_pid else 'No running instance detected.'
         choices = [
-            ('dedicated', 'Open in Dedicated Terminal'),
-            ('current', 'Run in Current Terminal'),
+            ('dedicated', 'Open in Dedicated Terminal (Mac)'),
+            ('current', 'Run in Current Terminal (Mac/Windows)'),
             ('status', f'Status ({status})'),
             ('kill', 'Force Kill Existing Instance'),
             ('quit', 'Quit')
