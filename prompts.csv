@@ -18,7 +18,7 @@ id,prompt
 17,Solve for x: x^2 - 9 = 0.
 18,Expand (x + 3)(x - 3).
 19,Simplify: 2x + 3y + 5x - y.
-20,Solve the system: x + y = 10, x - y = 2.
+20,Solve the system: x + y = 10; x - y = 2.
 21,Solve for x: 3x + 4 = 5x - 6.
 22,What is the slope of the line y = 3x + 2?
 23,Find the y-intercept of y = 2x - 5.
@@ -99,3 +99,263 @@ id,prompt
 98,What is the dot product of vectors (1,2) and (3,4)?
 99,What is the magnitude of vector (3,4)?
 100,What is the identity matrix for 2x2?
+101,What is the mode of 1, 2, 2, 3, 4?
+102,Calculate the range of the set {2, 5, 8, 1}.
+103,Convert 50 miles to kilometers.
+104,What is the binary representation of 10?
+105,What is the octal representation of 64?
+106,If A = {1, 3, 5} and B = {1, 2, 3}, what is A minus B?
+107,Is the set of integers countable?
+108,What is 0 factorial?
+109,How many subsets does the set {1, 2, 3} have?
+110,What is the probability of rolling a sum of 7 with two dice?
+111,Solve for x: log_3(27) = x.
+112,What is the derivative of x^3 + 2x?
+113,What is the integral of 3x^2 dx?
+114,What is the value of tan(0)?
+115,What is the value of sin(180 degrees)?
+116,Convert 2 hours 30 minutes to minutes.
+117,If a car travels at 60 km/h, how long to travel 180 km?
+118,What is the density of water in g/cm^3?
+119,Solve for x: 3^x = 81.
+120,What is the least common multiple of 5 and 7?
+121,Calculate 500 + 700.
+122,What is 1000 / 25?
+123,Evaluate 50 - (10 * 2).
+124,What is 3^4?
+125,Calculate 12 * 12.
+126,What is the square root of 81?
+127,Find 20% of 150.
+128,What is 75 + 25 - 10?
+129,Calculate 90 / 3.
+130,What is 2 + 2 * 2?
+131,Evaluate (5 + 5) * 2.
+132,What is 100 - 45?
+133,Calculate 150 * 2.
+134,What is 60 / 12?
+135,Find 10% of 500.
+136,What is 5^3?
+137,Calculate 11 * 11.
+138,What is the square root of 49?
+139,Evaluate 200 + 300 + 500.
+140,Solve for x: 4x = 16.
+141,Simplify: 3(x + 2).
+142,Solve for x: x - 5 = 10.
+143,Factor: x^2 - 4.
+144,Solve for x: 2x + 1 = 7.
+145,Expand: (x + 2)^2.
+146,Solve for x: x/2 = 8.
+147,Simplify: 5x - 2x.
+148,Area of square with side 5.
+149,Perimeter of square with side 6.
+150,Volume of cube with side 4.
+151,Area of rectangle 5x10.
+152,Perimeter of rectangle 3x8.
+153,Circumference of circle radius 3.
+154,Area of circle radius 4.
+155,Volume of sphere radius 3.
+156,Surface area of cube side 3.
+157,Diagonal of rectangle 3x4.
+158,Sum of angles in quadrilateral.
+159,Area of triangle base 6 height 4.
+160,Perimeter of triangle sides 3, 4, 5.
+161,Volume of cylinder radius 2 height 5.
+162,Surface area of sphere radius 2.
+163,Area of parallelogram base 5 height 3.
+164,Perimeter of regular hexagon side 2.
+165,Volume of cone radius 3 height 4.
+166,Area of trapezoid bases 3,5 height 4.
+167,Number of sides in octagon.
+168,Derivative of x^4.
+169,Integral of x dx.
+170,Derivative of cos(x).
+171,Integral of e^x dx.
+172,Limit of x^2 as x->2.
+173,Derivative of 5x.
+174,Integral of 1 dx.
+175,Derivative of ln(2x).
+176,Second derivative of x^2.
+177,Integral of sin(x) dx.
+178,Derivative of e^(2x).
+179,Limit of (x^2-1)/(x-1) as x->1.
+180,Derivative of 1/x.
+181,Integral of cos(x) dx.
+182,Derivative of tan(x).
+183,Definite integral x^2 from 0 to 1.
+184,Derivative of sqrt(x).
+185,Integral of x^3 dx.
+186,Is 29 prime?
+187,GCD of 24 and 36.
+188,LCM of 3 and 8.
+189,Prime factors of 100.
+190,Is 100 divisible by 3?
+191,10 modulo 3.
+192,Convert 1101 binary to decimal.
+193,Convert 20 decimal to hex.
+194,Is 91 prime?
+195,GCD of 15 and 25.
+196,LCM of 4 and 10.
+197,Prime factors of 30.
+198,Is 51 prime?
+199,15 modulo 4.
+200,Convert 7 decimal to binary.
+201,Convert A hex to decimal.
+202,Mean of 10, 20, 30.
+203,Median of 1, 5, 9.
+204,Mode of 1, 1, 2.
+205,Prob of heads twice in row.
+206,Prob of rolling even number on die.
+207,Range of 1, 10, 100.
+208,4 factorial.
+209,Permutations of 3 items.
+210,Combinations 4 choose 2.
+211,Prob of drawing King from deck.
+212,Mean of 2, 4, 6, 8.
+213,Median of 1, 2, 3, 4.
+214,Mode of 5, 5, 5, 1.
+215,Prob of rolling sum 12 with 2 dice.
+216,Standard deviation of 1, 1, 1.
+217,3 factorial.
+218,Prob of flipping tails.
+219,If A=True, B=False, A OR B?
+220,Negation of "It is raining".
+221,If P implies Q, Q is false, P?
+222,True or False: True AND False.
+223,Next in 1, 3, 5, 7...
+224,Next in 10, 20, 30...
+225,Syllogism: All men mortal, Socrates man.
+226,If not A, and A or B, then B?
+227,Contrapositive of "If P then Q".
+228,De Morgan's Law for not (A and B).
+229,If A=True, not A?
+230,True or False: False OR True.
+231,Next in 2, 5, 8...
+232,Next in 100, 90, 80...
+233,If A implies B, B implies C, A implies C?
+234,Inverse of "If P then Q".
+235,Converse of "If P then Q".
+236,Truth table row T, F for AND.
+237,Truth table row F, F for OR.
+238,Is "This statement is false" true?
+239,If A and B are true, is A or B true?
+240,Next in 1, 2, 4, 8...
+241,2 apples cost $1, how much for 4?
+242,Car goes 50mph for 2hrs, distance?
+243,3 workers build wall in 3 days, 1 worker?
+244,Split 20 candies among 4 kids.
+245,Rectangle area 20, width 4, length?
+246,John has 5 apples, eats 2. Left?
+247,Train leaves 1pm, arrives 3pm. Duration?
+248,Buy 2 items at $5 each, total?
+249,100 miles at 25mpg, gallons?
+250,Age is x, in 10 years x+10.
+251,50% off $100 item. Price?
+252,Double a recipe requiring 2 eggs.
+253,30 students, 10 boys, how many girls?
+254,Run 5km in 25 mins, pace?
+255,Save $10/month for year, total?
+256,12 cookies, eat 1/3. How many left?
+257,sin(90 degrees).
+258,cos(90 degrees).
+259,tan(45 degrees).
+260,sin(0).
+261,cos(180 degrees).
+262,tan(0).
+263,sin(45 degrees).
+264,cos(45 degrees).
+265,sin(60 degrees).
+266,cos(60 degrees).
+267,tan(60 degrees).
+268,sin(30 degrees).
+269,cos(30 degrees).
+270,tan(30 degrees).
+271,csc(30 degrees).
+272,sec(60 degrees).
+273,cot(45 degrees).
+274,sin^2(x) + cos^2(x).
+275,Convert 90 degrees to radians.
+276,Convert pi radians to degrees.
+277,Convert 45 degrees to radians.
+278,Convert pi/2 radians to degrees.
+279,Period of sin(x).
+280,Amplitude of 2cos(x).
+281,Add matrices [[1,0],[0,1]] + [[1,1],[1,1]].
+282,Transpose of [[1,2],[3,4]].
+283,Trace of [[1,0],[0,1]].
+284,Is [[1,0],[0,1]] invertible?
+285,Inverse of [[1,0],[0,1]].
+286,Dot product (1,0) . (0,1).
+287,Cross product (1,0,0) x (0,1,0).
+288,Magnitude of (1,1).
+289,Normalize vector (3,4).
+290,Rank of [[1,0],[0,0]].
+291,Eigenvalues of [[2,0],[0,3]].
+292,Determinant of [[2,0],[0,2]].
+293,Matrix mult [[1,0],[0,1]] * [[2,3],[4,5]].
+294,Add vectors (1,2) + (3,4).
+295,Subtract vectors (5,5) - (1,1).
+296,Scalar mult 2 * (1,2).
+297,Is [[0,0],[0,0]] invertible?
+298,Dimension of R^3.
+299,Basis for R^2.
+300,Orthogonal vectors example.
+301,Projection of (1,1) on (1,0).
+302,Angle between (1,0) and (0,1).
+303,Determinant of identity matrix.
+304,Trace of identity matrix 3x3.
+305,Null space of zero matrix.
+306,100 cm to meters.
+307,1 km to meters.
+308,1 kg to grams.
+309,1 hour to seconds.
+310,1 day to hours.
+311,1 liter to milliliters.
+312,12 inches to feet.
+313,3 feet to yards.
+314,1000 mg to grams.
+315,1 minute to seconds.
+316,0 Celsius to Fahrenheit.
+317,100 Celsius to Fahrenheit.
+318,32 Fahrenheit to Celsius.
+319,1 gallon to quarts.
+320,1 quart to pints.
+321,1 pint to cups.
+322,1 lb to ounces.
+323,1 ton to lbs.
+324,1 mile to feet.
+325,1 meter to cm.
+326,10 mm to cm.
+327,1 week to days.
+328,1 year to days.
+329,1 decade to years.
+330,1 century to years.
+331,1000 meters to km.
+332,1000 grams to kg.
+333,60 seconds to minutes.
+334,Union of {1,2} and {2,3}.
+335,Intersection of {1,2} and {2,3}.
+336,Is {1} subset of {1,2}?
+337,Cardinality of {a,b,c}.
+338,Power set of {1}.
+339,Complement of {1} in {1,2}.
+340,{1,2} minus {1}.
+341,Is empty set subset of {1}?
+342,Union of {1} and {}.
+343,Intersection of {1} and {}.
+344,Disjoint sets example.
+345,Universal set definition.
+346,Venn diagram 2 sets.
+347,{1,2} = {2,1}?
+348,Element 1 in {1,2}?
+349,{1,2,2} cardinality.
+350,Cartesian product {1} x {a}.
+351,{1,2} union {3,4}.
+352,{1,2} intersect {3,4}.
+353,Symmetric difference {1,2}, {2,3}.
+354,Is {1,2} proper subset of {1,2,3}?
+355,Number of subsets of {1,2}.
+356,{a,b} union {a}.
+357,{a,b} intersect {b}.
+358,{1} minus {2}.
+359,{1} x {1}.
+360,Is 0 in {1,2}?

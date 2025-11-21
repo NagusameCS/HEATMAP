@@ -56,6 +56,10 @@ import argparse
 import shlex
 import statistics
 import uuid
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 from prompt_toolkit.shortcuts import checkboxlist_dialog, radiolist_dialog, message_dialog, button_dialog, input_dialog
 from prompt_toolkit.styles import Style
 from rich.console import Console, Group
@@ -492,6 +496,18 @@ def load_prompts(filepath):
         console.print(f"[bold red]Error: Input file '{filepath}' not found.[/bold red]")
         sys.exit(1)
     return prompts
+
+def load_categories():
+    cats = {}
+    try:
+        with open('prompts_categories.csv', 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if 'id' in row and 'category' in row:
+                    cats[row['id']] = row['category']
+    except Exception:
+        pass
+    return cats
 
 def query_ollama_stream(model, prompt, temp, json_mode=False):
     url = f"{OLLAMA_API_BASE}/api/generate"
@@ -1102,11 +1118,17 @@ def purge_records_ui():
         return
 
     # UI Style: Default prompt_toolkit style
-    selected_sessions = checkboxlist_dialog(
-        title=f"Purge Sessions - {selected_model}",
-        text="Select sessions to DELETE (Space to select):",
-        values=[(s, s) for s in sessions]
-    ).run()
+    try:
+        selected_sessions = checkboxlist_dialog(
+            title=f"Purge Sessions - {selected_model}",
+            text="Select sessions to DELETE (Space to select):",
+            values=[(s, s) for s in sessions]
+        ).run()
+    except IndexError:
+        play_sound('error')
+        console.print("[red]UI Error: Mouse interaction failed. Please use keyboard navigation.[/red]")
+        time.sleep(2)
+        return
 
     if selected_sessions:
         # UI Style: Default prompt_toolkit style
@@ -1210,20 +1232,125 @@ def compute_accuracy_from_data(data):
     return None
 
 
+def generate_graph_from_csv(csv_path, output_dir, graph_type='line'):
+    """Generates a graph from a CSV file using matplotlib."""
+    if not plt:
+        return
+
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            rows = list(reader)
+            
+        if not rows:
+            return
+
+        header = rows[0]
+        base_name = os.path.splitext(os.path.basename(csv_path))[0]
+        output_path = os.path.join(output_dir, f"{base_name}.png")
+
+        plt.figure(figsize=(12, 6))
+
+        if graph_type == 'trends':
+            # Bar chart for trends
+            # Header: Model, Slope, Intercept, Trend_Direction, R_Squared
+            models = []
+            slopes = []
+            colors = []
+            
+            for row in rows[1:]:
+                if len(row) < 4: continue
+                model = row[0]
+                try:
+                    slope = float(row[1])
+                    direction = row[3]
+                    models.append(model)
+                    slopes.append(slope)
+                    if direction == 'Positive': colors.append('green')
+                    elif direction == 'Negative': colors.append('red')
+                    else: colors.append('gray')
+                except:
+                    pass
+            
+            if models:
+                plt.bar(models, slopes, color=colors)
+                plt.title(f"Trend Analysis (Slope) - {base_name}")
+                plt.xlabel("Model")
+                plt.ylabel("Slope")
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                plt.savefig(output_path)
+                plt.close()
+
+        else:
+            # Line plot for heatmap, derivative, pct_change
+            # Header: Model, T0.0, T0.1 ...
+            temps = []
+            # Parse temps from header
+            for h in header[1:]:
+                try:
+                    temps.append(float(h))
+                except:
+                    temps.append(h) # Fallback if not float
+
+            for row in rows[1:]:
+                model = row[0]
+                y_values = []
+                x_values = []
+                
+                for i, v in enumerate(row[1:]):
+                    if i < len(temps):
+                        if v and v != '' and v != 'INF':
+                            try:
+                                val = float(v)
+                                y_values.append(val)
+                                x_values.append(temps[i])
+                            except:
+                                pass
+                
+                if x_values and y_values:
+                    plt.plot(x_values, y_values, marker='o', label=model)
+
+            title_map = {
+                'line': 'Accuracy vs Temperature',
+                'derivative': 'Derivative vs Temperature',
+                'pct_change': 'Percent Change vs Temperature'
+            }
+            
+            plt.title(f"{title_map.get(graph_type, 'Graph')} - {base_name}")
+            plt.xlabel("Temperature")
+            plt.ylabel("Value")
+            plt.legend()
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(output_path)
+            plt.close()
+
+    except Exception as e:
+        console.print(f"[red]Error generating graph for {csv_path}: {e}[/red]")
+
 def aggregate_jsons_and_heatmap():
     """Scan `OUTPUT_DIR` for JSON files, separate syntactically invalid files,
     create a super JSON of valid parses, and produce a heatmap CSV of accuracy
     by model (rows) vs temperature (columns).
+    Also generates category-specific heatmaps in output/specifics/.
     """
     summaries_dir = os.path.join(OUTPUT_DIR, "Summaries")
+    specifics_dir = os.path.join(OUTPUT_DIR, "specifics")
     os.makedirs(summaries_dir, exist_ok=True)
+    os.makedirs(specifics_dir, exist_ok=True)
+
+    # Load categories
+    categories_map = load_categories()
 
     valid_entries = []
     invalid_entries = []
 
     for root, dirs, files in os.walk(OUTPUT_DIR):
         # skip summaries dir
-        if os.path.basename(root) == "Summaries":
+        if os.path.basename(root) == "Summaries" or os.path.basename(root) == "specifics":
             continue
         for fname in files:
             if not fname.lower().endswith('.json'):
@@ -1238,14 +1365,23 @@ def aggregate_jsons_and_heatmap():
                 parts = rel.split(os.sep)
                 model = parts[0] if len(parts) >= 3 else (parts[-2] if len(parts) >= 2 else 'unknown')
 
-                # infer temperature from filename (.tXX pattern), else try keys
+                # infer temperature and ID from filename (.tXX,numID pattern)
                 temp = None
+                q_id = None
+                
+                # Regex to capture temp and ID
+                # Expecting: model.t01,num5_eval.json or similar
                 m = re.search(r'\.t(\d{2})', fname)
                 if m:
                     try:
                         temp = int(m.group(1)) / 10.0
                     except Exception:
                         temp = None
+                
+                m_id = re.search(r',num(\d+)', fname)
+                if m_id:
+                    q_id = m_id.group(1)
+
                 if temp is None:
                     # try common keys
                     if isinstance(data, dict):
@@ -1257,11 +1393,15 @@ def aggregate_jsons_and_heatmap():
                             temp = None
 
                 accuracy = compute_accuracy_from_data(data)
+                
+                category = categories_map.get(q_id, "Uncategorized")
 
                 valid_entries.append({
                     'file': path,
                     'model': model,
                     'temp': temp,
+                    'q_id': q_id,
+                    'category': category,
                     'accuracy': accuracy,
                     'data': data
                 })
@@ -1282,97 +1422,130 @@ def aggregate_jsons_and_heatmap():
     except Exception:
         pass
 
-    # Build heatmap aggregation: model -> temp_bin -> list of accuracies
-    # Use the global TEMPERATURES (which are derived from settings) as the canonical columns
-    heatmap = {}
-    temps_list = list(TEMPERATURES) if TEMPERATURES else []
-    # prepare empty bins for each model as we encounter them
-    for e in valid_entries:
-        model = e.get('model') or 'unknown'
-        temp = e.get('temp')
-        acc = e.get('accuracy')
-        if acc is None or temp is None:
-            continue
-        try:
-            t = float(temp)
-        except Exception:
-            continue
-
-        # find nearest bin in temps_list within half-step tolerance
-        if not temps_list:
-            # fallback: use the observed temp directly
-            b = t
-        else:
-            # compute step tolerance
-            # derive step from temps_list; fallback to 0.1 if unavailable
-            step = temps_list[1] - temps_list[0] if len(temps_list) > 1 else 0.1
-            tol = abs(step) / 2.0 + 1e-9
-            nearest = None
-            mind = None
-            for bin_t in temps_list:
-                d = abs(bin_t - t)
-                if mind is None or d < mind:
-                    mind = d
-                    nearest = bin_t
-            if mind is not None and mind <= tol:
-                b = nearest
-            else:
-                # temp doesn't align to configured steps; skip it
+    # Helper to build and write heatmap
+    def write_heatmap(entries, output_path):
+        heatmap = {}
+        temps_list = list(TEMPERATURES) if TEMPERATURES else []
+        
+        for e in entries:
+            model = e.get('model') or 'unknown'
+            temp = e.get('temp')
+            acc = e.get('accuracy')
+            if acc is None or temp is None:
+                continue
+            try:
+                t = float(temp)
+            except Exception:
                 continue
 
-        heatmap.setdefault(model, {}).setdefault(b, []).append(float(acc))
+            # find nearest bin
+            if not temps_list:
+                b = t
+            else:
+                step = temps_list[1] - temps_list[0] if len(temps_list) > 1 else 0.1
+                tol = abs(step) / 2.0 + 1e-9
+                nearest = None
+                mind = None
+                for bin_t in temps_list:
+                    d = abs(bin_t - t)
+                    if mind is None or d < mind:
+                        mind = d
+                        nearest = bin_t
+                if mind is not None and mind <= tol:
+                    b = nearest
+                else:
+                    continue
 
-    models = sorted(heatmap.keys())
+            heatmap.setdefault(model, {}).setdefault(b, []).append(float(acc))
 
-    # Write CSV: Model, temp columns (0.0..1.0)
-    # Use a timestamped filename and register it with an index so users can select specific CSVs later
+        models = sorted(heatmap.keys())
+        
+        if not models:
+            return None
+
+        try:
+            with open(output_path, 'w', newline='', encoding='utf-8') as csvf:
+                writer = csv.writer(csvf)
+                header = ['Model'] + [f"{t:.1f}" for t in temps_list]
+                writer.writerow(header)
+                for model in models:
+                    row = [model]
+                    for t in temps_list:
+                        vals = heatmap.get(model, {}).get(t, [])
+                        if vals:
+                            avg = statistics.mean(vals)
+                            avg = max(0.0, min(1.0, avg))
+                            row.append(f"{avg:.4f}")
+                        else:
+                            row.append('')
+                    writer.writerow(row)
+            return temps_list
+        except Exception:
+            return None
+
+    # 1. Main Heatmap
     csv_basename = f"heatmap_{get_session_id()}.csv"
     csv_path = os.path.join(summaries_dir, csv_basename)
-    try:
-        with open(csv_path, 'w', newline='', encoding='utf-8') as csvf:
-            writer = csv.writer(csvf)
-            header = ['Model'] + [f"{t:.1f}" for t in temps_list]
-            writer.writerow(header)
-            for model in models:
-                row = [model]
-                for t in temps_list:
-                    vals = heatmap.get(model, {}).get(t, [])
-                    if vals:
-                        avg = statistics.mean(vals)
-                        # clamp to 0-1
-                        avg = max(0.0, min(1.0, avg))
-                        row.append(f"{avg:.4f}")
-                    else:
-                        row.append('')
-                writer.writerow(row)
-        # Register the CSV in the index for later selection
-        try:
-            csv_id, entry = _register_csv_entry(summaries_dir, csv_path, temps_list)
-        except Exception:
-            csv_id = None
-    except Exception:
-        csv_id = None
+    temps_used = write_heatmap(valid_entries, csv_path)
+    
+    # Generate Graph for Main Heatmap
+    graphs_dir = os.path.join(OUTPUT_DIR, "graphs")
+    generate_graph_from_csv(csv_path, os.path.join(graphs_dir, "main"), graph_type='line')
 
-    msg = f"Processed {len(valid_entries)} valid JSONs, {len(invalid_entries)} invalid.\nSuper JSON: {super_path}\nInvalid list: {invalid_path}\nHeatmap CSV: {csv_path}"
+    csv_id = None
+    if temps_used:
+        try:
+            csv_id, entry = _register_csv_entry(summaries_dir, csv_path, temps_used)
+        except Exception:
+            pass
+
+    # 2. Category Specific Heatmaps
+    # Group entries by category
+    entries_by_cat = {}
+    for e in valid_entries:
+        cat = e.get('category', 'Uncategorized')
+        if cat not in entries_by_cat:
+            entries_by_cat[cat] = []
+        entries_by_cat[cat].append(e)
+    
+    generated_specifics = []
+    for cat, entries in entries_by_cat.items():
+        safe_cat = "".join([c if c.isalnum() else "_" for c in cat])
+        cat_csv_name = f"heatmap_{safe_cat}_{get_session_id()}.csv"
+        cat_csv_path = os.path.join(specifics_dir, cat_csv_name)
+        if write_heatmap(entries, cat_csv_path):
+            generated_specifics.append(cat)
+            # Generate Graph for Specific Heatmap
+            generate_graph_from_csv(cat_csv_path, os.path.join(graphs_dir, "specifics"), graph_type='line')
+
+    msg = f"Processed {len(valid_entries)} valid JSONs.\nHeatmap CSV: {csv_path}"
     if csv_id:
         msg += f"\nCSV ID: {csv_id}"
+    if generated_specifics:
+        msg += f"\nGenerated {len(generated_specifics)} category heatmaps in output/specifics/"
+        
     message_dialog(title="Aggregation Complete", text=msg).run()
 
 
 def generate_heatmap_derivative(csv_path=None):
-    """Read `heatmap.csv` and produce `heatmap_derivative.csv` containing d/dx
-    (derivative along the temperature axis) for each model (row).
+    """Read `heatmap.csv` and produce:
+    1. `heatmap_derivative.csv`: d/dx (derivative along temp axis).
+    2. `heatmap_pct_change.csv`: Percent change vs previous point.
+    3. `heatmap_trends.csv`: Trend analysis (Slope/Direction).
 
     Behavior:
-    - Input CSV default: `output/Summaries/heatmap.csv`.
-    - Output CSV: `output/Summaries/heatmap_derivative.csv`.
-    - Uses central differences where possible, forward/backward at endpoints.
-    - Missing cells are preserved as empty in the derivative output.
+    - If csv_path is None, presents a multi-selection UI.
+    - Processes all selected CSVs.
     """
     summaries_dir = os.path.join(OUTPUT_DIR, "Summaries")
-    # If no csv_path provided, present a selection UI populated from the csv_index.json
-    index_path = os.path.join(summaries_dir, 'csv_index.json')
-    if csv_path is None:
+    
+    # 1. Determine Input CSVs
+    selected_paths = []
+    if csv_path:
+        selected_paths = [csv_path]
+    else:
+        # UI Selection
+        index_path = os.path.join(summaries_dir, 'csv_index.json')
         choices = []
         index = {}
         if os.path.exists(index_path):
@@ -1383,17 +1556,15 @@ def generate_heatmap_derivative(csv_path=None):
                 index = {}
 
         if index:
-            # Build radiolist choices from index entries
             for cid, meta in sorted(index.items(), key=lambda x: x[1].get('created_at', ''), reverse=True):
                 created = meta.get('created_at', '')
                 fname = meta.get('filename', '')
                 temps_preview = ','.join([f"{t:.1f}" for t in meta.get('temps', [])])
-                label = f"{cid} — {fname} ({created})\nTemps: {temps_preview}"
+                label = f"[{cid}] {fname} ({created})\nTemps: {temps_preview}"
                 choices.append((cid, label))
         else:
-            # Fallback: scan for heatmap_*.csv files
             for fn in sorted(os.listdir(summaries_dir), reverse=True):
-                if fn.startswith('heatmap_') and fn.lower().endswith('.csv'):
+                if fn.startswith('heatmap_') and fn.lower().endswith('.csv') and 'derivative' not in fn and 'pct_change' not in fn and 'trends' not in fn:
                     full = os.path.join(summaries_dir, fn)
                     ts = datetime.datetime.fromtimestamp(os.path.getmtime(full)).isoformat()
                     label = f"{fn} ({ts})"
@@ -1403,132 +1574,238 @@ def generate_heatmap_derivative(csv_path=None):
             message_dialog(title='Error', text=f'No heatmap CSVs found in: {summaries_dir}').run()
             return
 
-        # Let user pick which CSV to process
-        sel = radiolist_dialog(title='Select Heatmap CSV', text='Choose a heatmap CSV to derive from:', values=choices).run()
+        # Add Select All option
+        choices.insert(0, ("ALL", " [ SELECT ALL ]"))
+
+        # Multi-select UI
+        try:
+            sel = checkboxlist_dialog(
+                title='Select Heatmap CSVs', 
+                text='Choose heatmap CSVs to analyze (Space to select):', 
+                values=choices
+            ).run()
+        except IndexError:
+            play_sound('error')
+            console.print("[red]UI Error: Mouse interaction failed. Please use keyboard navigation.[/red]")
+            time.sleep(2)
+            return
+        
         if not sel:
             play_sound('back')
             return
 
-        # If user selected an index id, map to path
-        if sel in index:
-            csv_path = index[sel].get('path')
+        # Map selections to paths
+        if "ALL" in sel:
+            # Select all real choices (excluding "ALL" itself if it was in the list of values, but here we iterate choices)
+            # choices is list of (value, label)
+            for val, label in choices:
+                if val != "ALL":
+                    if val in index:
+                        selected_paths.append(index[val].get('path'))
+                    else:
+                        selected_paths.append(val)
         else:
-            csv_path = sel
+            for s in sel:
+                if s in index:
+                    selected_paths.append(index[s].get('path'))
+                else:
+                    selected_paths.append(s)
+        
+        # Remove duplicates just in case
+        selected_paths = list(set(selected_paths))
 
-    if not os.path.exists(csv_path):
-        message_dialog(title='Error', text=f'Heatmap CSV not found: {csv_path}').run()
-        return
+    # 2. Process Each CSV
+    results_msg = []
+    
+    for current_csv in selected_paths:
+        if not os.path.exists(current_csv):
+            results_msg.append(f"Skipped (not found): {current_csv}")
+            continue
 
-    # Determine source CSV ID from index (if available) for naming derivative output
-    csv_id = None
-    index_path = os.path.join(summaries_dir, 'csv_index.json')
-    try:
-        if os.path.exists(index_path):
-            with open(index_path, 'r', encoding='utf-8') as f:
-                _index = json.load(f)
-            # try to find matching entry by absolute path or basename
-            abs_csv = os.path.abspath(csv_path)
-            base_csv = os.path.basename(csv_path)
-            for cid, meta in _index.items():
-                try:
+        # Resolve ID
+        csv_id = None
+        try:
+            # Try to find ID in index
+            abs_csv = os.path.abspath(current_csv)
+            base_csv = os.path.basename(current_csv)
+            if os.path.exists(index_path):
+                with open(index_path, 'r', encoding='utf-8') as f:
+                    _index = json.load(f)
+                for cid, meta in _index.items():
                     if os.path.abspath(meta.get('path', '')) == abs_csv or meta.get('filename', '') == base_csv:
                         csv_id = cid
                         break
-                except Exception:
-                    continue
-    except Exception:
-        csv_id = None
-
-    out_name = f"heatmap_derivative_{(csv_id or get_session_id())}.csv"
-    out_path = os.path.join(summaries_dir, out_name)
-
-    # Read input
-    with open(csv_path, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        rows = list(reader)
-    if not rows:
-        message_dialog(title='Error', text='Input heatmap CSV is empty.').run()
-        return
-
-    header = rows[0]
-    # header[0] expected 'Model' then temp columns
-    temps = []
-    for h in header[1:]:
-        try:
-            temps.append(float(h))
         except Exception:
-            temps.append(None)
-
-    out_rows = [header]
-
-    for row in rows[1:]:
-        model = row[0]
-        values = []
-        for v in row[1:]:
-            if v is None or v == '':
-                values.append(None)
+            pass
+        
+        # Fallback ID from filename or timestamp
+        if not csv_id:
+            # try extracting from filename heatmap_ID.csv
+            m = re.search(r'heatmap_([a-f0-9]+)\.csv', base_csv)
+            if m:
+                csv_id = m.group(1)
             else:
-                try:
-                    values.append(float(v))
-                except Exception:
-                    values.append(None)
+                csv_id = get_session_id()
 
-        deriv = []
-        n = len(values)
-        for i in range(n):
-            yi = values[i]
-            xi = temps[i]
-            if yi is None or xi is None:
-                deriv.append('')
+        # Read Data
+        try:
+            with open(current_csv, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                rows = list(reader)
+        except Exception as e:
+            results_msg.append(f"Error reading {base_csv}: {e}")
+            continue
+
+        if not rows:
+            continue
+
+        header = rows[0]
+        temps = []
+        for h in header[1:]:
+            try:
+                temps.append(float(h))
+            except Exception:
+                temps.append(None)
+
+        # --- A. Standard Derivative ---
+        deriv_rows = [header]
+        # --- B. Percent Change ---
+        pct_rows = [header]
+        # --- C. Trend Analysis ---
+        trend_rows = [['Model', 'Slope', 'Intercept', 'Trend_Direction', 'R_Squared']]
+
+        for row in rows[1:]:
+            if not row:
                 continue
+            model = row[0]
+            values = []
+            for v in row[1:]:
+                if v is None or v == '':
+                    values.append(None)
+                else:
+                    try:
+                        values.append(float(v))
+                    except Exception:
+                        values.append(None)
 
-            # find previous available
-            j = i - 1
-            while j >= 0 and (values[j] is None or temps[j] is None):
-                j -= 1
-            # find next available
-            k = i + 1
-            while k < n and (values[k] is None or temps[k] is None):
-                k += 1
+            # 1. Derivatives & 2. Percent Change
+            d_row = [model]
+            p_row = [model]
+            
+            n = len(values)
+            
+            # For Trend Calculation
+            valid_points_x = []
+            valid_points_y = []
 
-            deriv_val = None
-            if j >= 0 and k < n:
-                # central difference using neighbors j and k
-                xj = temps[j]
-                xk = temps[k]
-                yj = values[j]
-                yk = values[k]
-                if xk != xj:
-                    deriv_val = (yk - yj) / (xk - xj)
-            elif k < n:
-                # forward difference
-                xk = temps[k]
-                yk = values[k]
-                if xk != xi:
-                    deriv_val = (yk - yi) / (xk - xi)
-            elif j >= 0:
-                # backward difference
-                xj = temps[j]
-                yj = values[j]
-                if xi != xj:
-                    deriv_val = (yi - yj) / (xi - xj)
+            for i in range(n):
+                if i >= len(temps):
+                    break
+                
+                yi = values[i]
+                xi = temps[i]
+                
+                if yi is not None and xi is not None:
+                    valid_points_x.append(xi)
+                    valid_points_y.append(yi)
 
-            if deriv_val is None:
-                deriv.append('')
+                # Derivative Logic
+                deriv_val = None
+                if yi is not None and xi is not None:
+                    # find neighbors
+                    j = i - 1
+                    while j >= 0 and (values[j] is None or temps[j] is None): j -= 1
+                    k = i + 1
+                    while k < n and (values[k] is None or temps[k] is None): k += 1
+                    
+                    if j >= 0 and k < n:
+                        if temps[k] != temps[j]: deriv_val = (values[k] - values[j]) / (temps[k] - temps[j])
+                    elif k < n:
+                        if temps[k] != xi: deriv_val = (values[k] - yi) / (temps[k] - xi)
+                    elif j >= 0:
+                        if xi != temps[j]: deriv_val = (yi - values[j]) / (xi - temps[j])
+                
+                d_row.append(f"{deriv_val:.6f}" if deriv_val is not None else '')
+
+                # Percent Change Logic
+                # (yi - y_prev) / y_prev
+                # Skip first point (i=0) effectively as it has no prev
+                pct_val = None
+                if i > 0 and yi is not None:
+                    # find immediate previous valid point
+                    j = i - 1
+                    while j >= 0 and values[j] is None: j -= 1
+                    
+                    if j >= 0:
+                        y_prev = values[j]
+                        if y_prev != 0:
+                            pct_val = (yi - y_prev) / abs(y_prev)
+                        elif yi == 0:
+                            pct_val = 0.0 # 0 to 0 is 0 change
+                        else:
+                            pct_val = float('inf') # 0 to something is infinite growth
+                
+                p_row.append(f"{pct_val:.4%}" if pct_val is not None and pct_val != float('inf') else ('INF' if pct_val == float('inf') else ''))
+
+            deriv_rows.append(d_row)
+            pct_rows.append(p_row)
+
+            # 3. Trend Calculation (Linear Regression)
+            if len(valid_points_x) > 1:
+                try:
+                    # Simple Linear Regression
+                    mean_x = statistics.mean(valid_points_x)
+                    mean_y = statistics.mean(valid_points_y)
+                    
+                    numer = sum((x - mean_x) * (y - mean_y) for x, y in zip(valid_points_x, valid_points_y))
+                    denom = sum((x - mean_x) ** 2 for x in valid_points_x)
+                    
+                    if denom != 0:
+                        slope = numer / denom
+                        intercept = mean_y - (slope * mean_x)
+                        
+                        # R-squared
+                        ss_tot = sum((y - mean_y) ** 2 for y in valid_points_y)
+                        ss_res = sum((y - (slope * x + intercept)) ** 2 for x, y in zip(valid_points_x, valid_points_y))
+                        r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0.0
+                        
+                        direction = "Neutral"
+                        if slope > 0.05: direction = "Positive"
+                        elif slope < -0.05: direction = "Negative"
+                        
+                        trend_rows.append([model, f"{slope:.4f}", f"{intercept:.4f}", direction, f"{r2:.4f}"])
+                    else:
+                        trend_rows.append([model, "N/A", "N/A", "Undefined", "N/A"])
+                except Exception:
+                    trend_rows.append([model, "Error", "", "", ""])
             else:
-                deriv.append(f"{deriv_val:.6f}")
+                trend_rows.append([model, "Insufficient Data", "", "", ""])
 
-        out_rows.append([model] + deriv)
+        # Write Files
+        base_name = os.path.splitext(base_csv)[0]
+        graphs_dir = os.path.join(OUTPUT_DIR, "graphs")
+        
+        # Derivative
+        out_d = os.path.join(summaries_dir, f"{base_name}_derivative.csv")
+        with open(out_d, 'w', newline='', encoding='utf-8') as f:
+            csv.writer(f).writerows(deriv_rows)
+        generate_graph_from_csv(out_d, os.path.join(graphs_dir, "derivatives"), graph_type='derivative')
+            
+        # Pct Change
+        out_p = os.path.join(summaries_dir, f"{base_name}_pct_change.csv")
+        with open(out_p, 'w', newline='', encoding='utf-8') as f:
+            csv.writer(f).writerows(pct_rows)
+        generate_graph_from_csv(out_p, os.path.join(graphs_dir, "pct_change"), graph_type='pct_change')
+            
+        # Trends
+        out_t = os.path.join(summaries_dir, f"{base_name}_trends.csv")
+        with open(out_t, 'w', newline='', encoding='utf-8') as f:
+            csv.writer(f).writerows(trend_rows)
+        generate_graph_from_csv(out_t, os.path.join(graphs_dir, "trends"), graph_type='trends')
 
-    # Write output
-    try:
-        with open(out_path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            for r in out_rows:
-                writer.writerow(r)
-        message_dialog(title='Derivative Complete', text=f'Wrote derivative CSV: {out_path}').run()
-    except Exception as e:
-        message_dialog(title='Error', text=f'Failed to write derivative CSV: {e}').run()
+        results_msg.append(f"Processed {base_csv} -> Generated derivative, pct_change, trends.")
+
+    message_dialog(title='Batch Processing Complete', text="\n".join(results_msg)).run()
 
 def shutdown_animation():
     """Plays a TV turn-off animation."""
@@ -1990,11 +2267,17 @@ def evaluate_sessions_ui(all_models):
         choices.append((value, display))
 
     # 3. Show Dialog
-    selected_values = checkboxlist_dialog(
-        title="Select Sessions to Evaluate",
-        text="Pick sessions (grouped by model).\nSelect 'SELECT ALL SESSIONS' to include everything.",
-        values=choices
-    ).run()
+    try:
+        selected_values = checkboxlist_dialog(
+            title="Select Sessions to Evaluate",
+            text="Pick sessions (grouped by model).\nSelect 'SELECT ALL SESSIONS' to include everything.",
+            values=choices
+        ).run()
+    except IndexError:
+        play_sound('error')
+        console.print("[red]UI Error: Mouse interaction failed. Please use keyboard navigation.[/red]")
+        time.sleep(2)
+        return
 
     if not selected_values:
         return

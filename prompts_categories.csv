@@ -1,0 +1,361 @@
+id,category
+1,Arithmetic
+2,Arithmetic
+3,Arithmetic
+4,Arithmetic
+5,Arithmetic
+6,Arithmetic
+7,Arithmetic
+8,Arithmetic
+9,Arithmetic
+10,Arithmetic
+11,Algebra
+12,Algebra
+13,Algebra
+14,Algebra
+15,Algebra
+16,Algebra
+17,Algebra
+18,Algebra
+19,Algebra
+20,Algebra
+21,Algebra
+22,Algebra
+23,Algebra
+24,Algebra
+25,Algebra
+26,Algebra
+27,Algebra
+28,Algebra
+29,Algebra
+30,Algebra
+31,Geometry
+32,Geometry
+33,Geometry
+34,Geometry
+35,Geometry
+36,Geometry
+37,Geometry
+38,Geometry
+39,Geometry
+40,Geometry
+41,Calculus
+42,Calculus
+43,Calculus
+44,Calculus
+45,Calculus
+46,Calculus
+47,Calculus
+48,Calculus
+49,Calculus
+50,Calculus
+51,Number Theory
+52,Number Theory
+53,Number Theory
+54,Number Theory
+55,Number Theory
+56,Number Theory
+57,Number Theory
+58,Number Theory
+59,Number Theory
+60,Number Theory
+61,Probability/Statistics
+62,Probability/Statistics
+63,Probability/Statistics
+64,Probability/Statistics
+65,Probability/Statistics
+66,Probability/Statistics
+67,Probability/Statistics
+68,Probability/Statistics
+69,Probability/Statistics
+70,Probability/Statistics
+71,Logic
+72,Logic
+73,Logic
+74,Logic
+75,Logic
+76,Logic
+77,Logic
+78,Logic
+79,Word Problems
+80,Word Problems
+81,Word Problems
+82,Word Problems
+83,Word Problems
+84,Word Problems
+85,Word Problems
+86,Word Problems
+87,Word Problems
+88,Word Problems
+89,Word Problems
+90,Word Problems
+91,Trigonometry
+92,Trigonometry
+93,Trigonometry
+94,Trigonometry
+95,Arithmetic
+96,Linear Algebra
+97,Linear Algebra
+98,Linear Algebra
+99,Linear Algebra
+100,Linear Algebra
+101,Probability/Statistics
+102,Probability/Statistics
+103,Unit Conversion
+104,Number Theory
+105,Number Theory
+106,Set Theory
+107,Set Theory
+108,Number Theory
+109,Set Theory
+110,Probability/Statistics
+111,Algebra
+112,Calculus
+113,Calculus
+114,Trigonometry
+115,Trigonometry
+116,Unit Conversion
+117,Word Problems
+118,Word Problems
+119,Algebra
+120,Number Theory
+121,Arithmetic
+122,Arithmetic
+123,Arithmetic
+124,Arithmetic
+125,Arithmetic
+126,Arithmetic
+127,Arithmetic
+128,Arithmetic
+129,Arithmetic
+130,Arithmetic
+131,Arithmetic
+132,Arithmetic
+133,Arithmetic
+134,Arithmetic
+135,Arithmetic
+136,Arithmetic
+137,Arithmetic
+138,Arithmetic
+139,Arithmetic
+140,Algebra
+141,Algebra
+142,Algebra
+143,Algebra
+144,Algebra
+145,Algebra
+146,Algebra
+147,Algebra
+148,Geometry
+149,Geometry
+150,Geometry
+151,Geometry
+152,Geometry
+153,Geometry
+154,Geometry
+155,Geometry
+156,Geometry
+157,Geometry
+158,Geometry
+159,Geometry
+160,Geometry
+161,Geometry
+162,Geometry
+163,Geometry
+164,Geometry
+165,Geometry
+166,Geometry
+167,Geometry
+168,Calculus
+169,Calculus
+170,Calculus
+171,Calculus
+172,Calculus
+173,Calculus
+174,Calculus
+175,Calculus
+176,Calculus
+177,Calculus
+178,Calculus
+179,Calculus
+180,Calculus
+181,Calculus
+182,Calculus
+183,Calculus
+184,Calculus
+185,Calculus
+186,Number Theory
+187,Number Theory
+188,Number Theory
+189,Number Theory
+190,Number Theory
+191,Number Theory
+192,Number Theory
+193,Number Theory
+194,Number Theory
+195,Number Theory
+196,Number Theory
+197,Number Theory
+198,Number Theory
+199,Number Theory
+200,Number Theory
+201,Number Theory
+202,Probability/Statistics
+203,Probability/Statistics
+204,Probability/Statistics
+205,Probability/Statistics
+206,Probability/Statistics
+207,Probability/Statistics
+208,Probability/Statistics
+209,Probability/Statistics
+210,Probability/Statistics
+211,Probability/Statistics
+212,Probability/Statistics
+213,Probability/Statistics
+214,Probability/Statistics
+215,Probability/Statistics
+216,Probability/Statistics
+217,Probability/Statistics
+218,Probability/Statistics
+219,Logic
+220,Logic
+221,Logic
+222,Logic
+223,Logic
+224,Logic
+225,Logic
+226,Logic
+227,Logic
+228,Logic
+229,Logic
+230,Logic
+231,Logic
+232,Logic
+233,Logic
+234,Logic
+235,Logic
+236,Logic
+237,Logic
+238,Logic
+239,Logic
+240,Logic
+241,Word Problems
+242,Word Problems
+243,Word Problems
+244,Word Problems
+245,Word Problems
+246,Word Problems
+247,Word Problems
+248,Word Problems
+249,Word Problems
+250,Word Problems
+251,Word Problems
+252,Word Problems
+253,Word Problems
+254,Word Problems
+255,Word Problems
+256,Word Problems
+257,Trigonometry
+258,Trigonometry
+259,Trigonometry
+260,Trigonometry
+261,Trigonometry
+262,Trigonometry
+263,Trigonometry
+264,Trigonometry
+265,Trigonometry
+266,Trigonometry
+267,Trigonometry
+268,Trigonometry
+269,Trigonometry
+270,Trigonometry
+271,Trigonometry
+272,Trigonometry
+273,Trigonometry
+274,Trigonometry
+275,Trigonometry
+276,Trigonometry
+277,Trigonometry
+278,Trigonometry
+279,Trigonometry
+280,Trigonometry
+281,Linear Algebra
+282,Linear Algebra
+283,Linear Algebra
+284,Linear Algebra
+285,Linear Algebra
+286,Linear Algebra
+287,Linear Algebra
+288,Linear Algebra
+289,Linear Algebra
+290,Linear Algebra
+291,Linear Algebra
+292,Linear Algebra
+293,Linear Algebra
+294,Linear Algebra
+295,Linear Algebra
+296,Linear Algebra
+297,Linear Algebra
+298,Linear Algebra
+299,Linear Algebra
+300,Linear Algebra
+301,Linear Algebra
+302,Linear Algebra
+303,Linear Algebra
+304,Linear Algebra
+305,Linear Algebra
+306,Unit Conversion
+307,Unit Conversion
+308,Unit Conversion
+309,Unit Conversion
+310,Unit Conversion
+311,Unit Conversion
+312,Unit Conversion
+313,Unit Conversion
+314,Unit Conversion
+315,Unit Conversion
+316,Unit Conversion
+317,Unit Conversion
+318,Unit Conversion
+319,Unit Conversion
+320,Unit Conversion
+321,Unit Conversion
+322,Unit Conversion
+323,Unit Conversion
+324,Unit Conversion
+325,Unit Conversion
+326,Unit Conversion
+327,Unit Conversion
+328,Unit Conversion
+329,Unit Conversion
+330,Unit Conversion
+331,Unit Conversion
+332,Unit Conversion
+333,Unit Conversion
+334,Set Theory
+335,Set Theory
+336,Set Theory
+337,Set Theory
+338,Set Theory
+339,Set Theory
+340,Set Theory
+341,Set Theory
+342,Set Theory
+343,Set Theory
+344,Set Theory
+345,Set Theory
+346,Set Theory
+347,Set Theory
+348,Set Theory
+349,Set Theory
+350,Set Theory
+351,Set Theory
+352,Set Theory
+353,Set Theory
+354,Set Theory
+355,Set Theory
+356,Set Theory
+357,Set Theory
+358,Set Theory
+359,Set Theory
+360,Set Theory
