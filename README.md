@@ -1,6 +1,6 @@
-#<img width="1280" height="640" alt="IRIS-MD (1)" src="https://github.com/user-attachments/assets/9a731931-a919-48c1-a612-9a21faf3fdd3" />
+<img width="1280" height="640" alt="IRIS-MD (1)" src="https://github.com/user-attachments/assets/9a731931-a919-48c1-a612-9a21faf3fdd3" />
 
- HEATMAP — Local LLM Benchmarking & Heatmap Generator
+
 
 Overview
 --------
