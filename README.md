@@ -1,4 +1,6 @@
-# HEATMAP — Local LLM Benchmarking & Heatmap Generator
+<img width="1280" height="640" alt="IRIS-MD (1)" src="https://github.com/user-attachments/assets/9a731931-a919-48c1-a612-9a21faf3fdd3" />
+<img src="https://img.shields.io/badge/GH--Page-0350aa?style=for-the-badge&logo=github&link=https%3A%2F%2Fnagusamecs.github.io%2FHEATMAP%2F" alt="Badge">
+
 
 Overview
 --------
@@ -110,16 +112,3 @@ Development notes
 - The main app is `heatmap_generator.py`. The launcher is `run.py`.
 - Unit tests are not included in Beta 1.0; adding CI tests is planned.
 - If you modify the temperature settings manually in `settings.json`, restart the app or re-open Settings to apply them.
-
-Contributing
-------------
-Contributions, bug reports, and feature requests are welcome. Please open issues or pull requests on the project's GitHub page.
-
-License
--------
-This project is released under the LICENSE included in the repository.
-
-Contact
--------
-See the GitHub repo page for contact information and issue tracking.
-
