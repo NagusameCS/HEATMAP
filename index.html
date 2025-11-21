@@ -1060,6 +1060,11 @@
             }
         });
 
+        // Animation Widget Click
+        document.querySelector('.animation-widget').addEventListener('click', () => {
+            window.open(`https://github.com/${repoOwner}/${repoName}`, '_blank');
+        });
+
         let wikiPages = [];
         let currentWikiPage = '';
 
