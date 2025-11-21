@@ -1282,9 +1282,11 @@ def aggregate_jsons_and_heatmap():
     except Exception:
         pass
 
-    # Build heatmap aggregation: model -> temp -> list of accuracies
+    # Build heatmap aggregation: model -> temp_bin -> list of accuracies
+    # Use the global TEMPERATURES (which are derived from settings) as the canonical columns
     heatmap = {}
-    temps_set = set()
+    temps_list = list(TEMPERATURES) if TEMPERATURES else []
+    # prepare empty bins for each model as we encounter them
     for e in valid_entries:
         model = e.get('model') or 'unknown'
         temp = e.get('temp')
@@ -1295,10 +1297,31 @@ def aggregate_jsons_and_heatmap():
             t = float(temp)
         except Exception:
             continue
-        temps_set.add(t)
-        heatmap.setdefault(model, {}).setdefault(t, []).append(float(acc))
 
-    temps_list = sorted(temps_set)
+        # find nearest bin in temps_list within half-step tolerance
+        if not temps_list:
+            # fallback: use the observed temp directly
+            b = t
+        else:
+            # compute step tolerance
+            # derive step from temps_list; fallback to 0.1 if unavailable
+            step = temps_list[1] - temps_list[0] if len(temps_list) > 1 else 0.1
+            tol = abs(step) / 2.0 + 1e-9
+            nearest = None
+            mind = None
+            for bin_t in temps_list:
+                d = abs(bin_t - t)
+                if mind is None or d < mind:
+                    mind = d
+                    nearest = bin_t
+            if mind is not None and mind <= tol:
+                b = nearest
+            else:
+                # temp doesn't align to configured steps; skip it
+                continue
+
+        heatmap.setdefault(model, {}).setdefault(b, []).append(float(acc))
+
     models = sorted(heatmap.keys())
 
     # Write CSV: Model, temp columns (0.0..1.0)
