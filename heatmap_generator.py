@@ -2543,4 +2543,3 @@ if __name__ == "__main__":
         console.print(f"[bold red]An unexpected error occurred:[/bold red] {e}")
         import traceback
         traceback.print_exc()
-
